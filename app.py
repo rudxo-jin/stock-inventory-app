@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import datetime, date
+from datetime import datetime
 import sys
 
 # utils 모듈 import
@@ -9,6 +9,7 @@ from utils.data_processor import PartDataProcessor
 from utils.adjustment_processor import AdjustmentProcessor
 from utils.file_converter import ExcelFileConverter
 from utils.report_generator import ReportGenerator
+from utils.ui_components import UIComponents
 
 # 페이지 설정
 st.set_page_config(
@@ -18,27 +19,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 사이드바에 진행 단계 표시
-def show_progress_sidebar():
-    st.sidebar.title("📋 진행 단계")
-    
-    steps = [
-        "1️⃣ PART 파일 업로드",
-        "2️⃣ 실재고 템플릿 다운로드", 
-        "3️⃣ 실재고 데이터 업로드",
-        "4️⃣ 재고조정 파일 업로드",
-        "5️⃣ 결과보고서 생성"
-    ]
-    
-    current_step = st.session_state.get('step', 1)
-    
-    for i, step in enumerate(steps, 1):
-        if i < current_step:
-            st.sidebar.success(f"✅ {step}")
-        elif i == current_step:
-            st.sidebar.info(f"🔄 {step}")
-        else:
-            st.sidebar.write(f"⏳ {step}")
+
 
 # 메인 함수
 def main():
@@ -46,7 +27,7 @@ def main():
     st.markdown("---")
     
     # 사이드바 진행 단계 표시
-    show_progress_sidebar()
+    UIComponents.show_progress_sidebar()
     
     # 세션 상태 초기화
     if 'step' not in st.session_state:
@@ -435,48 +416,11 @@ def main():
             # 점포 정보 입력 폼
             st.markdown("### 🏪 점포 정보 입력")
             
-            with st.form("store_info_form"):
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    store_name = st.text_input(
-                        "점포명", 
-                        value="고양점",
-                        placeholder="예: 고양점"
-                    )
-                    survey_method = st.selectbox(
-                        "조사방식",
-                        ["전수조사", "표본조사"],
-                        index=0
-                    )
-                
-                with col2:
-                    survey_date = st.date_input(
-                        "재고조사일시",
-                        value=date.today(),
-                        help="재고조사를 실시한 날짜를 선택하세요"
-                    )
-                    survey_staff = st.text_input(
-                        "조사인원",
-                        value="",
-                        placeholder="조사에 참석한 직원명 표기",
-                        help="예: 김영길 외 5명"
-                    )
-                
-                # 보고서 생성 버튼
-                generate_report = st.form_submit_button("📋 보고서 생성", type="primary")
+            # UI 컴포넌트를 사용하여 폼 렌더링
+            generate_report, store_info = UIComponents.render_store_info_form()
             
             # 보고서 생성 처리
             if generate_report:
-                # 날짜 형식 변환
-                survey_date_str = survey_date.strftime('%Y년 %m월 %d일')
-                
-                store_info = {
-                    'store_name': store_name,
-                    'survey_date': survey_date_str,
-                    'survey_method': survey_method,
-                    'survey_staff': survey_staff
-                }
                 
                 # final_data가 없으면 inventory_data로 대체
                 final_data_to_use = st.session_state.get('final_data')
@@ -541,159 +485,20 @@ def main():
                     
                     st.markdown("---")
                     
-                    # 섹션별 카드 스타일 CSS
-                    st.markdown("""
-                    <style>
-                    .card-container {
-                        display: flex;
-                        justify-content: center;
-                        margin: 0.5rem 0;
-                    }
-                    .section-card {
-                        background-color: #ffffff;
-                        padding: 1rem;
-                        border-radius: 12px;
-                        border: 1px solid #e0e0e0;
-                        margin: 0.3rem 0;
-                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                        max-width: 600px;
-                        width: 100%;
-                    }
-                    .section-title {
-                        font-size: 1.2rem;
-                        font-weight: bold;
-                        color: #333;
-                        margin-bottom: 0.8rem;
-                        padding-bottom: 0.3rem;
-                        border-bottom: 2px solid #f0f0f0;
-                        text-align: center;
-                    }
-                    .metric-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        max-width: 500px;
-                        margin: 0 auto;
-                    }
-                    .metric-row {
-                        border-bottom: 1px solid #f5f5f5;
-                    }
-                    .metric-row:last-child {
-                        border-bottom: none;
-                    }
-                    .metric-label {
-                        padding: 0.5rem 1rem;
-                        font-size: 1rem;
-                        color: #555;
-                        width: 50%;
-                        text-align: left;
-                    }
-                    .metric-value {
-                        padding: 0.5rem 1rem;
-                        font-size: 1.1rem;
-                        font-weight: bold;
-                        text-align: right;
-                        width: 50%;
-                    }
-                    .positive-value {
-                        color: #28a745;
-                    }
-                    .negative-value {
-                        color: #dc3545;
-                    }
-                    .total-value {
-                        color: #ffc107;
-                        background-color: #fffef8;
-                        padding: 0.6rem 1rem;
-                        border-radius: 6px;
-                    }
-                    .total-label {
-                        background-color: #fffef8;
-                        padding: 0.6rem 1rem;
-                        border-radius: 6px;
-                        font-weight: bold;
-                    }
-                    </style>
-                    """, unsafe_allow_html=True)
+                    # 카드 스타일 CSS 적용
+                    st.markdown(UIComponents.get_card_styles(), unsafe_allow_html=True)
                     
                     # 1. 전산재고 vs 실재고 섹션
                     inv_comp = stats['inventory_comparison']
-                    st.markdown(f"""
-                    <div class="card-container">
-                        <div class="section-card">
-                            <div class="section-title">📊 전산재고 vs 실재고</div>
-                            <table class="metric-table">
-                                <tr class="metric-row">
-                                    <td class="metric-label">전산재고액</td>
-                                    <td class="metric-value">{inv_comp['computer_stock_value']:,.0f}원</td>
-                                </tr>
-                                <tr class="metric-row">
-                                    <td class="metric-label">(+) 실재고액</td>
-                                    <td class="metric-value positive-value">+{inv_comp['positive_amount']:,.0f}원</td>
-                                </tr>
-                                <tr class="metric-row">
-                                    <td class="metric-label">(-) 실재고액</td>
-                                    <td class="metric-value negative-value">-{inv_comp['negative_amount']:,.0f}원</td>
-                                </tr>
-                                <tr class="metric-row">
-                                    <td class="metric-label">최종재고액</td>
-                                    <td class="metric-value">{inv_comp['final_stock_value']:,.0f}원</td>
-                                </tr>
-                                <tr class="metric-row">
-                                    <td class="metric-label total-label">차액</td>
-                                    <td class="metric-value total-value">{inv_comp['difference']:+,.0f}원</td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(UIComponents.render_inventory_comparison_card(inv_comp), unsafe_allow_html=True)
                     
                     # 2. 재고조정 영향 섹션
                     adj_imp = stats['adjustment_impact']
-                    st.markdown(f"""
-                    <div class="card-container">
-                        <div class="section-card">
-                            <div class="section-title">⚖️ 재고조정 영향</div>
-                            <table class="metric-table">
-                                <tr class="metric-row">
-                                    <td class="metric-label">(+) 재고조정액</td>
-                                    <td class="metric-value positive-value">+{adj_imp['positive_adjustment']:,.0f}원</td>
-                                </tr>
-                                <tr class="metric-row">
-                                    <td class="metric-label">(-) 재고조정액</td>
-                                    <td class="metric-value negative-value">-{adj_imp['negative_adjustment']:,.0f}원</td>
-                                </tr>
-                                <tr class="metric-row">
-                                    <td class="metric-label total-label">재고조정 차액</td>
-                                    <td class="metric-value total-value">{adj_imp['adjustment_difference']:+,.0f}원</td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(UIComponents.render_adjustment_impact_card(adj_imp), unsafe_allow_html=True)
                     
                     # 3. 총 재고차액 섹션
                     total_imp = stats['total_impact']
-                    st.markdown(f"""
-                    <div class="card-container">
-                        <div class="section-card">
-                            <div class="section-title">💰 총 재고차액</div>
-                            <table class="metric-table">
-                                <tr class="metric-row">
-                                    <td class="metric-label">(+) 총재고차액</td>
-                                    <td class="metric-value positive-value">+{total_imp['total_positive']:,.0f}원</td>
-                                </tr>
-                                <tr class="metric-row">
-                                    <td class="metric-label">(-) 총재고차액</td>
-                                    <td class="metric-value negative-value">-{total_imp['total_negative']:,.0f}원</td>
-                                </tr>
-                                <tr class="metric-row">
-                                    <td class="metric-label total-label">총재고차액 계</td>
-                                    <td class="metric-value total-value">{total_imp['total_difference']:+,.0f}원</td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(UIComponents.render_total_impact_card(total_imp), unsafe_allow_html=True)
                     
                     # 엑셀 다운로드 버튼
                     st.markdown("### 📥 보고서 다운로드")
