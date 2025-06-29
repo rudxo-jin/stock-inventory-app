@@ -373,6 +373,9 @@ def main():
         st.session_state.excel_report_data = None
     if 'excel_generation_time' not in st.session_state:
         st.session_state.excel_generation_time = None
+    # 점포 정보 세션 상태
+    if 'store_info' not in st.session_state:
+        st.session_state.store_info = None
     
     # 탭 생성
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -712,10 +715,15 @@ def main():
         
         # 조건 확인 (step >= 3이고 inventory_data가 있으면 OK)
         if st.session_state.step >= 3 and st.session_state.inventory_data is not None:
-            # 점포 정보 입력
+            # 점포 정보 입력 및 세션 저장
             store_info = render_store_info_form()
             
+            # 점포 정보가 입력되면 세션에 저장
             if store_info:
+                st.session_state.store_info = store_info
+            
+            # 세션에 저장된 점포 정보 사용 (폼 제출과 무관하게 유지)
+            if hasattr(st.session_state, 'store_info') and st.session_state.store_info:
                 # final_data가 없으면 inventory_data 사용
                 report_data_source = st.session_state.final_data if st.session_state.final_data is not None else st.session_state.inventory_data
                 
@@ -726,10 +734,10 @@ def main():
                 elif st.session_state.adjustment_data is not None:
                     processors['report_generator'].set_adjustment_data(st.session_state.adjustment_data)
                 
-                # 보고서 데이터 생성 (모든 필요한 데이터 전달)
+                # 보고서 데이터 생성 (세션에 저장된 점포 정보 사용)
                 report_data = processors['report_generator'].generate_report_data(
                     inventory_data=report_data_source,
-                    store_info=store_info,
+                    store_info=st.session_state.store_info,
                     part_data=st.session_state.part_data,
                     final_data=st.session_state.final_data,
                     adjustment_summary=st.session_state.adjustment_summary
@@ -827,6 +835,8 @@ def main():
                             """)
                 else:
                     st.error("❌ 보고서 데이터 생성 실패")
+            else:
+                st.info("💡 위의 점포 정보를 입력하고 '📋 보고서 생성' 버튼을 클릭해주세요.")
         else:
             st.warning("⚠️ 먼저 이전 단계를 완료해주세요.")
             
