@@ -328,7 +328,7 @@ def main():
                                     if filter_success and st.session_state.inventory_data is not None:
                                         # 실재고 데이터에 재고조정 적용
                                         apply_success, apply_message, final_data, adj_summary = processors['adjustment_processor'].apply_adjustments_to_inventory(
-                                            st.session_state.inventory_data, filtered_data
+                                            st.session_state.inventory_data, st.session_state.part_data
                                         )
                                         
                                         if apply_success:
@@ -340,16 +340,27 @@ def main():
                                             # 적용 결과 표시
                                             st.markdown("### 📊 재고조정 적용 결과")
                                             
-                                            col1, col2, col3 = st.columns(3)
+                                            col1, col2, col3, col4 = st.columns(4)
                                             with col1:
-                                                st.metric("적용된 조정 건수", f"{len(filtered_data):,}건")
+                                                st.metric("필터된 조정 건수", f"{len(filtered_data):,}건")
                                             with col2:
-                                                total_adj_qty = filtered_data['수량'].sum()
-                                                st.metric("총 조정 수량", f"{total_adj_qty:,.0f}")
+                                                st.metric("매칭된 조정 건수", f"{adj_summary.get('total_adjustments', 0):,}건")
                                             with col3:
-                                                # 조정액 계산 (단가 * 수량)
-                                                total_adj_value = (filtered_data['수량'] * filtered_data.get('단가', 0)).sum() if '단가' in filtered_data.columns else 0
-                                                st.metric("총 조정액", f"{total_adj_value:,.0f}원")
+                                                positive_amt = adj_summary.get('positive_amount', 0)
+                                                st.metric("(+) 조정액", f"{positive_amt:,.0f}원")
+                                            with col4:
+                                                negative_amt = abs(adj_summary.get('negative_amount', 0))
+                                                st.metric("(-) 조정액", f"{negative_amt:,.0f}원")
+                                            
+                                            # 미매칭 품목이 있으면 경고 표시
+                                            unmatched_items = adj_summary.get('unmatched_items', [])
+                                            if unmatched_items:
+                                                st.warning(f"⚠️ {len(unmatched_items)}개 품목이 실재고 데이터와 매칭되지 않았습니다.")
+                                                
+                                                # 미매칭 품목 상세 정보 (접기/펼치기)
+                                                with st.expander("미매칭 품목 상세"):
+                                                    unmatched_df = pd.DataFrame(unmatched_items)
+                                                    st.dataframe(unmatched_df, use_container_width=True)
                                             
                                             st.rerun()
                                         else:
@@ -379,11 +390,11 @@ def main():
             if summary:
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.metric("(+) 조정 건수", f"{summary.get('positive_count', 0):,}건")
-                    st.metric("(+) 조정 수량", f"{summary.get('positive_qty', 0):,.0f}")
+                    st.metric("(+) 조정 건수", f"{summary.get('positive_records', 0):,}건")
+                    st.metric("(+) 조정 수량", f"{summary.get('positive_quantity', 0):,.0f}")
                 with col2:
-                    st.metric("(-) 조정 건수", f"{summary.get('negative_count', 0):,}건")
-                    st.metric("(-) 조정 수량", f"{abs(summary.get('negative_qty', 0)):,.0f}")
+                    st.metric("(-) 조정 건수", f"{summary.get('negative_records', 0):,}건")
+                    st.metric("(-) 조정 수량", f"{abs(summary.get('negative_quantity', 0)):,.0f}")
     
     with tab5:
         st.header("📊 결과보고서")

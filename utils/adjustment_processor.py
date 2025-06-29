@@ -101,6 +101,10 @@ class AdjustmentProcessor:
         # 제작사품번별 재고조정 집계
         adj_grouped = self.filtered_data.groupby(['제작사품번', '조정구분'])['수량'].sum().reset_index()
         
+        # 매칭된 품목 수와 매칭 실패 수 추적
+        matched_count = 0
+        unmatched_count = 0
+        
         for _, adj_row in adj_grouped.iterrows():
             part_code = adj_row['제작사품번']
             adj_type = adj_row['조정구분']
@@ -110,6 +114,7 @@ class AdjustmentProcessor:
             mask = result_df['제작사 품번'] == part_code
             
             if mask.any():
+                # 단가는 inventory_df에서 가져오기 (이미 계산되어 있음)
                 unit_price = result_df.loc[mask, '단가'].iloc[0]
                 adjustment_amount = quantity * unit_price
                 
@@ -122,23 +127,29 @@ class AdjustmentProcessor:
                     result_df.loc[mask, '실재고'] -= quantity
                     result_df.loc[mask, '실재고액'] -= adjustment_amount
                     summary['negative_adjustments'] += 1
-                    summary['negative_amount'] += adjustment_amount
+                    summary['negative_amount'] -= adjustment_amount  # 음수로 저장
                 
                 # 차이와 차액 재계산
                 result_df.loc[mask, '차이'] = result_df.loc[mask, '실재고'] - result_df.loc[mask, '재고']
                 result_df.loc[mask, '차액'] = result_df.loc[mask, '실재고액'] - result_df.loc[mask, '재고액']
                 
                 summary['total_adjustments'] += 1
+                matched_count += 1
             else:
                 summary['unmatched_items'].append({
                     'part_code': part_code, 'quantity': quantity, 'type': adj_type
                 })
+                unmatched_count += 1
+        
+        # 처리 결과 메시지에 상세 정보 포함
+        message = f"✅ 재고조정 반영 완료 (매칭: {matched_count}건, 미매칭: {unmatched_count}건)"
         
         # 반올림
         for col in ['실재고', '실재고액', '차이', '차액']:
-            result_df[col] = result_df[col].round(2)
+            if col in result_df.columns:
+                result_df[col] = result_df[col].round(2)
         
-        return True, "✅ 재고조정 반영 완료", result_df, summary
+        return True, message, result_df, summary
     
     def get_adjustment_summary(self) -> Dict:
         """재고조정 요약 통계"""
