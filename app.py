@@ -10,7 +10,7 @@ from utils.file_converter import ExcelFileConverter
 from utils.report_generator import ReportGenerator
 from utils.ui_components import UIComponents
 
-# 페이지 설정
+# 페이지 설정 (배포 최적화)
 st.set_page_config(
     page_title="재고조사 앱",
     page_icon="📦",
@@ -18,15 +18,25 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 캐시된 프로세서 초기화
+# 배포 환경 체크
+@st.cache_data
+def is_cloud_environment():
+    """클라우드 배포 환경인지 확인"""
+    return os.getenv('STREAMLIT_SHARING_MODE') is not None or os.getenv('DYNO') is not None
+
+# 캐시된 프로세서 초기화 (배포 최적화)
 @st.cache_resource
 def get_processors():
     """프로세서 인스턴스들을 캐시하여 메모리 효율성 향상"""
-    return {
-        'part_processor': PartDataProcessor(),
-        'adjustment_processor': AdjustmentProcessor(),
-        'report_generator': ReportGenerator()
-    }
+    try:
+        return {
+            'part_processor': PartDataProcessor(),
+            'adjustment_processor': AdjustmentProcessor(),
+            'report_generator': ReportGenerator()
+        }
+    except Exception as e:
+        st.error(f"프로세서 초기화 오류: {str(e)}")
+        return None
 
 # 메인 함수
 def main():
