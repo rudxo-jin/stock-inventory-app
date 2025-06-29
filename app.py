@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import datetime
+from datetime import datetime, date
 import sys
 
 # utils 모듈 import
@@ -457,31 +457,7 @@ def main():
                     stats = st.session_state.report_generator.get_summary_stats()
                     
                     # 점포 정보 카드
-                    st.markdown(f"""
-                    <div class="card-container">
-                        <div class="section-card">
-                            <div class="section-title">🏪 점포 정보</div>
-                            <table class="metric-table">
-                                <tr class="metric-row">
-                                    <td class="metric-label">점포명</td>
-                                    <td class="metric-value">{store_name}</td>
-                                </tr>
-                                <tr class="metric-row">
-                                    <td class="metric-label">조사일시</td>
-                                    <td class="metric-value">{survey_date_str}</td>
-                                </tr>
-                                <tr class="metric-row">
-                                    <td class="metric-label">조사방식</td>
-                                    <td class="metric-value">{survey_method}</td>
-                                </tr>
-                                <tr class="metric-row">
-                                    <td class="metric-label">조사인원</td>
-                                    <td class="metric-value">{survey_staff}</td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(UIComponents.render_store_info_card(store_info), unsafe_allow_html=True)
                     
                     st.markdown("---")
                     
