@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime, date
-import sys
 
 # utils 모듈 import
 from utils.data_processor import PartDataProcessor
