@@ -442,10 +442,10 @@ class ReportGenerator:
         if '조정구분' in self.adjustment_data.columns:
             positive_data = self.adjustment_data[self.adjustment_data['조정구분'] == '+'].copy()
         else:
-            # 수량변경에서 +가 포함된 데이터 필터링
-            positive_data = self.adjustment_data[
-                self.adjustment_data['수량변경'].astype(str).str.contains(r'\+|증가', na=False)
-            ].copy()
+            # 수량변경에서 +가 포함된 데이터 필터링 (더 안전한 방법)
+            mask = (self.adjustment_data['수량변경'].astype(str).str.contains('+', na=False) | 
+                   self.adjustment_data['수량변경'].astype(str).str.contains('증가', na=False))
+            positive_data = self.adjustment_data[mask].copy()
         
         if positive_data.empty:
             return pd.DataFrame()
@@ -476,10 +476,10 @@ class ReportGenerator:
         if '조정구분' in self.adjustment_data.columns:
             negative_data = self.adjustment_data[self.adjustment_data['조정구분'] == '-'].copy()
         else:
-            # 수량변경에서 -가 포함된 데이터 필터링
-            negative_data = self.adjustment_data[
-                self.adjustment_data['수량변경'].astype(str).str.contains(r'\-|감소', na=False)
-            ].copy()
+            # 수량변경에서 -가 포함된 데이터 필터링 (더 안전한 방법)
+            mask = (self.adjustment_data['수량변경'].astype(str).str.contains('-', na=False) | 
+                   self.adjustment_data['수량변경'].astype(str).str.contains('감소', na=False))
+            negative_data = self.adjustment_data[mask].copy()
         
         if negative_data.empty:
             return pd.DataFrame()
