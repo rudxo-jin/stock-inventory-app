@@ -368,6 +368,11 @@ def main():
         st.session_state.final_data = None
     if 'adjustment_summary' not in st.session_state:
         st.session_state.adjustment_summary = None
+    # 엑셀 보고서 관련 세션 상태
+    if 'excel_report_data' not in st.session_state:
+        st.session_state.excel_report_data = None
+    if 'excel_generation_time' not in st.session_state:
+        st.session_state.excel_generation_time = None
     
     # 탭 생성
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -740,39 +745,64 @@ def main():
                     # 엑셀 보고서 다운로드
                     st.markdown("### 📥 보고서 다운로드")
                     
-                    # 엑셀 보고서 생성 (간소화된 버전)
+                    # 엑셀 보고서 생성 (세션 상태 기반)
                     col1, col2 = st.columns([1, 3])
                     with col1:
+                        # 엑셀 생성 버튼
                         if st.button("📊 엑셀 보고서 생성", type="primary", key="generate_excel"):
                             try:
                                 with st.spinner("📊 엑셀 보고서를 생성 중입니다..."):
+                                    # 보고서 데이터가 설정되어 있는지 확인
+                                    if not hasattr(processors['report_generator'], 'report_data') or processors['report_generator'].report_data is None:
+                                        st.error("❌ 보고서 데이터가 없습니다. 점포 정보를 입력하고 보고서를 먼저 생성해주세요.")
+                                        st.stop()
+                                    
                                     # 엑셀 보고서 생성
                                     excel_data = processors['report_generator'].create_excel_report()
                                     
                                     if excel_data and len(excel_data) > 0:
+                                        # 세션에 저장
+                                        st.session_state.excel_report_data = excel_data
+                                        st.session_state.excel_generation_time = datetime.now().strftime("%Y%m%d_%H%M%S")
                                         st.success("✅ 엑셀 보고서가 성공적으로 생성되었습니다!")
-                                        
-                                        # 파일 다운로드 버튼
-                                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                                        filename = f"재고조사보고서_{timestamp}.xlsx"
-                                        
-                                        st.download_button(
-                                            label="📥 보고서 다운로드",
-                                            data=excel_data,
-                                            file_name=filename,
-                                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                            key="download_excel_direct"
-                                        )
+                                        st.rerun()  # 페이지 새로고침으로 다운로드 버튼 표시
                                     else:
                                         st.error("❌ 엑셀 보고서 생성 실패: 데이터가 비어있습니다.")
                                         
                             except Exception as e:
                                 st.error(f"❌ 보고서 생성 오류: {str(e)}")
-                                # 디버깅을 위한 상세 정보 (개발용)
                                 st.error(f"상세 오류: {type(e).__name__}")
+                        
+                        # 다운로드 버튼 (엑셀 데이터가 있을 때만 표시)
+                        if st.session_state.excel_report_data is not None:
+                            filename = f"재고조사보고서_{st.session_state.excel_generation_time}.xlsx"
+                            
+                            st.download_button(
+                                label="📥 보고서 다운로드",
+                                data=st.session_state.excel_report_data,
+                                file_name=filename,
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="download_excel_persistent"
+                            )
+                            
+                            # 파일 크기 정보
+                            file_size = len(st.session_state.excel_report_data) / 1024  # KB
+                            st.info(f"📄 파일 크기: {file_size:.1f}KB")
+                            
+                            # 새 보고서 생성 버튼
+                            if st.button("🔄 새 보고서 생성", key="reset_excel"):
+                                st.session_state.excel_report_data = None
+                                st.session_state.excel_generation_time = None
+                                st.rerun()
                     
                     with col2:
                         st.info("📋 **보고서 구성**: 요약보고서, 재고차이리스트, 재고조정리스트 (5개 시트)")
+                        
+                        # 현재 상태 표시
+                        if st.session_state.excel_report_data is not None:
+                            st.success(f"✅ 엑셀 파일 준비 완료 ({st.session_state.excel_generation_time})")
+                        else:
+                            st.info("💡 먼저 '엑셀 보고서 생성' 버튼을 클릭하세요")
                         
                         # 엑셀 보고서 설명
                         with st.expander("📝 엑셀 보고서 상세 내용"):
