@@ -115,12 +115,16 @@ class UIComponents:
             # 보고서 생성 버튼
             generate_report = st.form_submit_button("📋 보고서 생성", type="primary")
             
-            return generate_report, {
-                'store_name': store_name,
-                'survey_date': survey_date.strftime('%Y년 %m월 %d일'),
-                'survey_method': survey_method,
-                'survey_staff': survey_staff
-            }
+            # 폼이 제출되었을 때만 store_info 반환
+            if generate_report:
+                return {
+                    'store_name': store_name,
+                    'survey_date': survey_date.strftime('%Y년 %m월 %d일'),
+                    'survey_method': survey_method,
+                    'survey_staff': survey_staff
+                }
+            else:
+                return None
     
     @staticmethod
     def render_store_info_card(store_info):
@@ -255,4 +259,25 @@ class UIComponents:
             elif i == current_step:
                 st.sidebar.info(f"🔄 {step}")
             else:
-                st.sidebar.write(f"⏳ {step}") 
+                st.sidebar.write(f"⏳ {step}")
+    
+    @staticmethod
+    def render_report_cards(report_data):
+        """전체 보고서 카드들을 렌더링"""
+        # CSS 스타일 적용
+        st.markdown(UIComponents.get_card_styles(), unsafe_allow_html=True)
+        
+        # 1. 점포 정보 카드
+        st.markdown(UIComponents.render_store_info_card(report_data['store_info']), unsafe_allow_html=True)
+        
+        # 구분선
+        st.markdown("---")
+        
+        # 2. 전산재고 vs 실재고 카드
+        st.markdown(UIComponents.render_inventory_comparison_card(report_data['inventory_comparison']), unsafe_allow_html=True)
+        
+        # 3. 재고조정 영향 카드
+        st.markdown(UIComponents.render_adjustment_impact_card(report_data['adjustment_impact']), unsafe_allow_html=True)
+        
+        # 4. 총 재고차액 카드
+        st.markdown(UIComponents.render_total_impact_card(report_data['total_impact']), unsafe_allow_html=True) 
