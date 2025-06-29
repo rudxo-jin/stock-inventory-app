@@ -18,25 +18,42 @@ class ReportGenerator:
     
     def generate_report_data(
         self, 
-        part_data: pd.DataFrame, 
-        inventory_data: pd.DataFrame, 
-        final_data: pd.DataFrame,
-        adjustment_summary: Dict,
-        store_info: Dict
+        inventory_data: pd.DataFrame,
+        store_info: Dict,
+        part_data: Optional[pd.DataFrame] = None,
+        final_data: Optional[pd.DataFrame] = None,
+        adjustment_summary: Optional[Dict] = None
     ) -> Dict:
         """
         보고서 데이터 생성
         
         Args:
-            part_data: 원본 PART 데이터
-            inventory_data: 실재고 처리 데이터
-            final_data: 최종 재고 데이터 (재고조정 적용 후)
-            adjustment_summary: 재고조정 요약
-            store_info: 점포 정보
+            inventory_data: 실재고 처리 데이터 (필수)
+            store_info: 점포 정보 (필수)
+            part_data: 원본 PART 데이터 (선택)
+            final_data: 최종 재고 데이터 (재고조정 적용 후, 선택)
+            adjustment_summary: 재고조정 요약 (선택)
             
         Returns:
             보고서 데이터 딕셔너리
         """
+        
+        # final_data가 없으면 inventory_data 사용
+        if final_data is None:
+            final_data = inventory_data
+            
+        # part_data가 없으면 inventory_data에서 추정
+        if part_data is None:
+            # inventory_data에서 전산재고 정보 추출
+            part_data = inventory_data.copy()
+        
+        # adjustment_summary가 없으면 기본값 사용
+        if adjustment_summary is None:
+            adjustment_summary = {
+                'positive_amount': 0,
+                'negative_amount': 0,
+                'total_adjustments': 0
+            }
         
         # 다중 시트를 위한 데이터 저장
         self.part_data = part_data
@@ -73,15 +90,19 @@ class ReportGenerator:
     def _calculate_inventory_comparison(self, part_data: pd.DataFrame, inventory_data: pd.DataFrame) -> Dict:
         """전산재고 vs 실재고 비교 계산"""
         
-        # 전산재고액 (원본 PART 데이터에서)
-        computer_stock_value = part_data['재고액'].sum()
+        # 전산재고액 계산
+        if '재고액' in part_data.columns:
+            computer_stock_value = part_data['재고액'].sum()
+        else:
+            # inventory_data에서 전산재고액 추정 (재고 * 단가)
+            computer_stock_value = (inventory_data['재고'] * inventory_data['단가']).sum()
         
         # 실재고 증가/감소 분리
         positive_diff = inventory_data[inventory_data['차이'] > 0]
         negative_diff = inventory_data[inventory_data['차이'] < 0]
         
-        positive_amount = positive_diff['차액'].sum()
-        negative_amount = abs(negative_diff['차액'].sum())  # 절댓값
+        positive_amount = positive_diff['차액'].sum() if not positive_diff.empty else 0
+        negative_amount = abs(negative_diff['차액'].sum()) if not negative_diff.empty else 0  # 절댓값
         
         # 최종재고액
         final_stock_value = computer_stock_value + positive_amount - negative_amount
