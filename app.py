@@ -805,7 +805,21 @@ def main():
                                         st.session_state.excel_report_data = excel_data
                                         st.session_state.excel_generation_time = datetime.now().strftime("%Y%m%d_%H%M%S")
                                         st.success("✅ 엑셀 보고서가 성공적으로 생성되었습니다!")
-                                        st.rerun()  # 페이지 새로고침으로 다운로드 버튼 표시
+                                        
+                                        # 즉시 다운로드 버튼 표시 (st.rerun() 제거)
+                                        filename = f"재고조사보고서_{st.session_state.excel_generation_time}.xlsx"
+                                        
+                                        st.download_button(
+                                            label="📥 보고서 다운로드",
+                                            data=st.session_state.excel_report_data,
+                                            file_name=filename,
+                                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                            key="download_excel_immediate"
+                                        )
+                                        
+                                        # 파일 크기 정보
+                                        file_size = len(st.session_state.excel_report_data) / 1024  # KB
+                                        st.info(f"📄 파일 크기: {file_size:.1f}KB")
                                     else:
                                         st.error("❌ 엑셀 보고서 생성 실패: 데이터가 비어있습니다.")
                                         
@@ -817,12 +831,12 @@ def main():
                                 with st.expander("🔧 상세 오류 정보"):
                                     st.code(traceback.format_exc())
                         
-                        # 다운로드 버튼 (엑셀 데이터가 있을 때만 표시)
-                        if st.session_state.excel_report_data is not None:
+                        # 기존 다운로드 버튼 (엑셀 데이터가 있을 때만 표시)
+                        elif st.session_state.excel_report_data is not None:
                             filename = f"재고조사보고서_{st.session_state.excel_generation_time}.xlsx"
                             
                             st.download_button(
-                                label="📥 보고서 다운로드",
+                                label="📥 보고서 다운로드 (기존)",
                                 data=st.session_state.excel_report_data,
                                 file_name=filename,
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -837,7 +851,6 @@ def main():
                             if st.button("🔄 새 보고서 생성", key="reset_excel"):
                                 st.session_state.excel_report_data = None
                                 st.session_state.excel_generation_time = None
-                                st.rerun()
                     
                     with col2:
                         st.info("📋 **보고서 구성**: 요약보고서, 재고차이리스트, 재고조정리스트 (5개 시트)")
