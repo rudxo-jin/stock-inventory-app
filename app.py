@@ -752,13 +752,53 @@ def main():
                         if st.button("📊 엑셀 보고서 생성", type="primary", key="generate_excel"):
                             try:
                                 with st.spinner("📊 엑셀 보고서를 생성 중입니다..."):
-                                    # 보고서 데이터가 설정되어 있는지 확인
-                                    if not hasattr(processors['report_generator'], 'report_data') or processors['report_generator'].report_data is None:
-                                        st.error("❌ 보고서 데이터가 없습니다. 점포 정보를 입력하고 보고서를 먼저 생성해주세요.")
-                                        st.stop()
+                                    # 보고서 데이터 강제 재생성 (안전한 방법)
+                                    report_generator = processors['report_generator']
+                                    
+                                    # 현재 보고서 데이터가 없다면 재생성
+                                    if not hasattr(report_generator, 'report_data') or report_generator.report_data is None:
+                                        st.info("📋 보고서 데이터를 준비 중입니다...")
+                                        
+                                        # 보고서 데이터 재생성 시도
+                                        try:
+                                            # 현재 세션에서 사용 가능한 데이터로 보고서 재생성
+                                            temp_store_info = {
+                                                'store_name': '고양점',
+                                                'survey_date': '2024년 12월 31일',
+                                                'survey_method': '전수조사',
+                                                'survey_staff': '재고조사 담당자'
+                                            }
+                                            
+                                            # 보고서 데이터 재생성을 위한 데이터 소스 준비
+                                            data_source = st.session_state.final_data if st.session_state.final_data is not None else st.session_state.inventory_data
+                                            
+                                            if data_source is None:
+                                                raise ValueError("재고 데이터가 없습니다")
+                                            
+                                            # 보고서 데이터 재생성
+                                            report_generator.generate_report_data(
+                                                inventory_data=data_source,
+                                                store_info=temp_store_info,
+                                                part_data=st.session_state.part_data,
+                                                final_data=st.session_state.final_data,
+                                                adjustment_summary=st.session_state.adjustment_summary
+                                            )
+                                            st.success("📋 보고서 데이터가 준비되었습니다!")
+                                        except Exception as setup_error:
+                                            st.error(f"❌ 보고서 데이터 준비 실패: {str(setup_error)}")
+                                            st.error("먼저 점포 정보를 입력하고 '보고서 생성' 버튼을 클릭해주세요.")
+                                            st.stop()
+                                    
+                                    # 디버깅 정보 표시
+                                    with st.expander("🔧 디버깅 정보"):
+                                        st.write(f"- report_data 존재: {report_generator.report_data is not None}")
+                                        st.write(f"- inventory_data 존재: {report_generator.inventory_data is not None}")
+                                        st.write(f"- part_data 존재: {report_generator.part_data is not None}")
+                                        if report_generator.report_data:
+                                            st.write(f"- report_data 키들: {list(report_generator.report_data.keys())}")
                                     
                                     # 엑셀 보고서 생성
-                                    excel_data = processors['report_generator'].create_excel_report()
+                                    excel_data = report_generator.create_excel_report()
                                     
                                     if excel_data and len(excel_data) > 0:
                                         # 세션에 저장
@@ -772,6 +812,10 @@ def main():
                             except Exception as e:
                                 st.error(f"❌ 보고서 생성 오류: {str(e)}")
                                 st.error(f"상세 오류: {type(e).__name__}")
+                                # 상세한 에러 정보
+                                import traceback
+                                with st.expander("🔧 상세 오류 정보"):
+                                    st.code(traceback.format_exc())
                         
                         # 다운로드 버튼 (엑셀 데이터가 있을 때만 표시)
                         if st.session_state.excel_report_data is not None:
