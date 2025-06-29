@@ -101,24 +101,204 @@ def render_store_info_form():
             }
         return None
 
+def get_card_styles():
+    """카드 스타일 CSS를 반환"""
+    return """
+    <style>
+    .card-container {
+        display: flex;
+        justify-content: center;
+        margin: 0.5rem 0;
+    }
+    .section-card {
+        background-color: #ffffff;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 1px solid #e0e0e0;
+        margin: 0.3rem 0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        max-width: 600px;
+        width: 100%;
+    }
+    .section-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 0.8rem;
+        padding-bottom: 0.3rem;
+        border-bottom: 2px solid #f0f0f0;
+        text-align: center;
+    }
+    .metric-table {
+        width: 100%;
+        border-collapse: collapse;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    .metric-row {
+        border-bottom: 1px solid #f5f5f5;
+    }
+    .metric-row:last-child {
+        border-bottom: none;
+    }
+    .metric-label {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        color: #555;
+        width: 50%;
+        text-align: left;
+    }
+    .metric-value {
+        padding: 0.5rem 1rem;
+        font-size: 1.1rem;
+        font-weight: bold;
+        text-align: right;
+        width: 50%;
+    }
+    .positive-value {
+        color: #28a745;
+    }
+    .negative-value {
+        color: #dc3545;
+    }
+    .total-value {
+        color: #ffc107;
+        background-color: #fffef8;
+        padding: 0.6rem 1rem;
+        border-radius: 6px;
+    }
+    .total-label {
+        background-color: #fffef8;
+        padding: 0.6rem 1rem;
+        border-radius: 6px;
+        font-weight: bold;
+    }
+    </style>
+    """
+
+def render_store_info_card(store_info):
+    """점포 정보 카드를 렌더링"""
+    return f"""
+    <div class="card-container">
+        <div class="section-card">
+            <div class="section-title">🏪 점포 정보</div>
+            <table class="metric-table">
+                <tr class="metric-row">
+                    <td class="metric-label">점포명</td>
+                    <td class="metric-value">{store_info['store_name']}</td>
+                </tr>
+                <tr class="metric-row">
+                    <td class="metric-label">조사일시</td>
+                    <td class="metric-value">{store_info['survey_date']}</td>
+                </tr>
+                <tr class="metric-row">
+                    <td class="metric-label">조사방식</td>
+                    <td class="metric-value">{store_info['survey_method']}</td>
+                </tr>
+                <tr class="metric-row">
+                    <td class="metric-label">조사인원</td>
+                    <td class="metric-value">{store_info['survey_staff']}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    """
+
+def render_inventory_comparison_card(inv_comp):
+    """전산재고 vs 실재고 카드를 렌더링"""
+    return f"""
+    <div class="card-container">
+        <div class="section-card">
+            <div class="section-title">📊 전산재고 vs 실재고</div>
+            <table class="metric-table">
+                <tr class="metric-row">
+                    <td class="metric-label">전산재고액</td>
+                    <td class="metric-value">{inv_comp['computer_stock_value']:,.0f}원</td>
+                </tr>
+                <tr class="metric-row">
+                    <td class="metric-label">(+) 실재고액</td>
+                    <td class="metric-value positive-value">+{inv_comp['positive_amount']:,.0f}원</td>
+                </tr>
+                <tr class="metric-row">
+                    <td class="metric-label">(-) 실재고액</td>
+                    <td class="metric-value negative-value">-{inv_comp['negative_amount']:,.0f}원</td>
+                </tr>
+                <tr class="metric-row">
+                    <td class="metric-label">최종재고액</td>
+                    <td class="metric-value">{inv_comp['final_stock_value']:,.0f}원</td>
+                </tr>
+                <tr class="metric-row">
+                    <td class="metric-label total-label">차액</td>
+                    <td class="metric-value total-value">{inv_comp['difference']:+,.0f}원</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    """
+
+def render_adjustment_impact_card(adj_imp):
+    """재고조정 영향 카드를 렌더링"""
+    return f"""
+    <div class="card-container">
+        <div class="section-card">
+            <div class="section-title">⚖️ 재고조정 영향</div>
+            <table class="metric-table">
+                <tr class="metric-row">
+                    <td class="metric-label">(+) 재고조정액</td>
+                    <td class="metric-value positive-value">+{adj_imp['positive_adjustment']:,.0f}원</td>
+                </tr>
+                <tr class="metric-row">
+                    <td class="metric-label">(-) 재고조정액</td>
+                    <td class="metric-value negative-value">-{adj_imp['negative_adjustment']:,.0f}원</td>
+                </tr>
+                <tr class="metric-row">
+                    <td class="metric-label total-label">조정 차액</td>
+                    <td class="metric-value total-value">{adj_imp['adjustment_difference']:+,.0f}원</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    """
+
+def render_total_impact_card(total_imp):
+    """총 재고차액 카드를 렌더링"""
+    return f"""
+    <div class="card-container">
+        <div class="section-card">
+            <div class="section-title">💰 총 재고차액</div>
+            <table class="metric-table">
+                <tr class="metric-row">
+                    <td class="metric-label">(+) 총재고차액</td>
+                    <td class="metric-value positive-value">+{total_imp['total_positive']:,.0f}원</td>
+                </tr>
+                <tr class="metric-row">
+                    <td class="metric-label">(-) 총재고차액</td>
+                    <td class="metric-value negative-value">-{total_imp['total_negative']:,.0f}원</td>
+                </tr>
+                <tr class="metric-row">
+                    <td class="metric-label total-label">총재고차액 계</td>
+                    <td class="metric-value total-value">{total_imp['grand_total']:+,.0f}원</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    """
+
 def render_report_cards(report_data):
-    """보고서 카드 렌더링"""
-    # 간단한 메트릭 카드로 대체
-    col1, col2 = st.columns(2)
+    """보고서 카드 렌더링 (원래 UIComponents와 동일한 스타일)"""
+    # CSS 스타일 적용
+    st.markdown(get_card_styles(), unsafe_allow_html=True)
     
-    with col1:
-        st.subheader("🏪 점포 정보")
-        st.write(f"**점포명**: {report_data['store_info']['store_name']}")
-        st.write(f"**조사일시**: {report_data['store_info']['survey_date']}")
-        st.write(f"**조사방식**: {report_data['store_info']['survey_method']}")
-        st.write(f"**조사인원**: {report_data['store_info']['survey_staff']}")
+    # 4개 카드 렌더링
+    st.markdown(render_store_info_card(report_data['store_info']), unsafe_allow_html=True)
+    st.markdown(render_inventory_comparison_card(report_data['inventory_comparison']), unsafe_allow_html=True)
     
-    with col2:
-        st.subheader("📊 재고 요약")
-        inv_comp = report_data['inventory_comparison']
-        st.metric("전산재고액", f"{inv_comp['computer_stock_value']:,.0f}원")
-        st.metric("최종재고액", f"{inv_comp['final_stock_value']:,.0f}원")
-        st.metric("차액", f"{inv_comp['difference']:+,.0f}원", delta=f"{inv_comp['difference']:+,.0f}원")
+    # 재고조정 데이터가 있는 경우에만 표시
+    if 'adjustment_impact' in report_data and report_data['adjustment_impact']:
+        st.markdown(render_adjustment_impact_card(report_data['adjustment_impact']), unsafe_allow_html=True)
+    
+    if 'total_impact' in report_data and report_data['total_impact']:
+        st.markdown(render_total_impact_card(report_data['total_impact']), unsafe_allow_html=True)
 
 # 메인 함수
 def main():
