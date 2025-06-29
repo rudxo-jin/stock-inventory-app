@@ -261,28 +261,56 @@ def render_adjustment_impact_card(adj_imp):
     """
 
 def render_total_impact_card(total_imp):
-    """총 재고차액 카드를 렌더링"""
-    return f"""
-    <div class="card-container">
-        <div class="section-card">
-            <div class="section-title">💰 총 재고차액</div>
-            <table class="metric-table">
-                <tr class="metric-row">
-                    <td class="metric-label">(+) 총재고차액</td>
-                    <td class="metric-value positive-value">+{total_imp.get('total_positive', 0):,.0f}원</td>
-                </tr>
-                <tr class="metric-row">
-                    <td class="metric-label">(-) 총재고차액</td>
-                    <td class="metric-value negative-value">-{total_imp.get('total_negative', 0):,.0f}원</td>
-                </tr>
-                <tr class="metric-row">
-                    <td class="metric-label total-label">총재고차액 계</td>
-                    <td class="metric-value total-value">{total_imp.get('total_difference', 0):+,.0f}원</td>
-                </tr>
-            </table>
+    """총 재고차액 카드를 렌더링 (안전한 렌더링)"""
+    try:
+        # 안전한 값 추출
+        if not isinstance(total_imp, dict):
+            total_imp = {}
+            
+        total_positive = total_imp.get('total_positive', 0)
+        total_negative = total_imp.get('total_negative', 0)
+        total_difference = total_imp.get('total_difference', 0)
+        
+        # 숫자 타입 확인
+        if not isinstance(total_positive, (int, float)):
+            total_positive = 0
+        if not isinstance(total_negative, (int, float)):
+            total_negative = 0
+        if not isinstance(total_difference, (int, float)):
+            total_difference = 0
+        
+        return f"""
+        <div class="card-container">
+            <div class="section-card">
+                <div class="section-title">💰 총 재고차액</div>
+                <table class="metric-table">
+                    <tr class="metric-row">
+                        <td class="metric-label">(+) 총재고차액</td>
+                        <td class="metric-value positive-value">+{total_positive:,.0f}원</td>
+                    </tr>
+                    <tr class="metric-row">
+                        <td class="metric-label">(-) 총재고차액</td>
+                        <td class="metric-value negative-value">-{total_negative:,.0f}원</td>
+                    </tr>
+                    <tr class="metric-row">
+                        <td class="metric-label total-label">총재고차액 계</td>
+                        <td class="metric-value total-value">{total_difference:+,.0f}원</td>
+                    </tr>
+                </table>
+            </div>
         </div>
-    </div>
-    """
+        """
+    except Exception as e:
+        return f"""
+        <div class="card-container">
+            <div class="section-card">
+                <div class="section-title">💰 총 재고차액</div>
+                <div class="card-content">
+                    <p style="color: red; text-align: center;">카드 렌더링 오류: {str(e)}</p>
+                </div>
+            </div>
+        </div>
+        """
 
 def render_report_cards(report_data):
     """보고서 카드 렌더링 (원래 UIComponents와 동일한 스타일)"""
@@ -300,13 +328,13 @@ def render_report_cards(report_data):
         
         # 재고조정 영향 카드 (항상 표시 - 재고조정 적용 여부와 상관없이)
         adjustment_impact = report_data.get('adjustment_impact', {})
-        if adjustment_impact:
-            st.markdown(render_adjustment_impact_card(adjustment_impact), unsafe_allow_html=True)
+        # 빈 딕셔너리라도 카드는 표시 (0값으로)
+        st.markdown(render_adjustment_impact_card(adjustment_impact), unsafe_allow_html=True)
         
-        # 총 재고차액 카드 (항상 표시)
+        # 총 재고차액 카드 (항상 표시 - 안전한 렌더링)
         total_impact = report_data.get('total_impact', {})
-        if total_impact:
-            st.markdown(render_total_impact_card(total_impact), unsafe_allow_html=True)
+        # 빈 딕셔너리라도 카드는 표시 (0값으로)
+        st.markdown(render_total_impact_card(total_impact), unsafe_allow_html=True)
         
 
             
@@ -712,61 +740,50 @@ def main():
                     # 엑셀 보고서 다운로드
                     st.markdown("### 📥 보고서 다운로드")
                     
-                    # 엑셀 보고서 생성 (세션 상태 기반)
-                    if 'excel_data' not in st.session_state:
-                        st.session_state.excel_data = None
-                    
+                    # 엑셀 보고서 생성 (간소화된 버전)
                     col1, col2 = st.columns([1, 3])
                     with col1:
                         if st.button("📊 엑셀 보고서 생성", type="primary", key="generate_excel"):
                             try:
                                 with st.spinner("📊 엑셀 보고서를 생성 중입니다..."):
-                                    # ReportGenerator에 모든 필요한 데이터 설정 확인
-                                    report_gen = processors['report_generator']
-                                    
-                                    # 데이터 설정 상태 확인
-                                    if not hasattr(report_gen, 'report_data') or report_gen.report_data is None:
-                                        st.error("❌ 보고서 데이터가 설정되지 않았습니다. 먼저 보고서를 생성해주세요.")
-                                        st.stop()
-                                    
                                     # 엑셀 보고서 생성
-                                    excel_data = report_gen.create_excel_report()
+                                    excel_data = processors['report_generator'].create_excel_report()
                                     
                                     if excel_data and len(excel_data) > 0:
-                                        st.session_state.excel_data = excel_data
                                         st.success("✅ 엑셀 보고서가 성공적으로 생성되었습니다!")
-                                        st.rerun()
+                                        
+                                        # 파일 다운로드 버튼
+                                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                                        filename = f"재고조사보고서_{timestamp}.xlsx"
+                                        
+                                        st.download_button(
+                                            label="📥 보고서 다운로드",
+                                            data=excel_data,
+                                            file_name=filename,
+                                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                            key="download_excel_direct"
+                                        )
                                     else:
                                         st.error("❌ 엑셀 보고서 생성 실패: 데이터가 비어있습니다.")
                                         
                             except Exception as e:
                                 st.error(f"❌ 보고서 생성 오류: {str(e)}")
-                                import traceback
-                                st.error(f"상세 오류: {traceback.format_exc()}")
-                        
-                        # 다운로드 버튼 (엑셀 데이터가 있을 때만 표시)
-                        if st.session_state.excel_data is not None:
-                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                            filename = f"재고조사보고서_{timestamp}.xlsx"
-                            
-                            st.download_button(
-                                label="📥 보고서 다운로드",
-                                data=st.session_state.excel_data,
-                                file_name=filename,
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                key="download_excel"
-                            )
-                            
-                            # 다운로드 후 세션 정리 (선택사항)
-                            if st.button("🔄 새 보고서 생성", key="reset_excel"):
-                                st.session_state.excel_data = None
-                                st.rerun()
+                                # 디버깅을 위한 상세 정보 (개발용)
+                                st.error(f"상세 오류: {type(e).__name__}")
                     
                     with col2:
                         st.info("📋 **보고서 구성**: 요약보고서, 재고차이리스트, 재고조정리스트 (5개 시트)")
-                        if st.session_state.excel_data is not None:
-                            file_size = len(st.session_state.excel_data) / 1024  # KB
-                            st.success(f"✅ 엑셀 파일 준비 완료 (크기: {file_size:.1f}KB)")
+                        
+                        # 엑셀 보고서 설명
+                        with st.expander("📝 엑셀 보고서 상세 내용"):
+                            st.write("""
+                            **포함 시트:**
+                            - 📊 재고조사요약: 전체 결과 요약
+                            - 📉 재고차이리스트(-): 부족 재고 상세
+                            - 📈 재고차이리스트(+): 과잉 재고 상세
+                            - ⚖️ 재고조정리스트(+): 증가 조정 내역
+                            - ⚖️ 재고조정리스트(-): 감소 조정 내역
+                            """)
                 else:
                     st.error("❌ 보고서 데이터 생성 실패")
         else:
