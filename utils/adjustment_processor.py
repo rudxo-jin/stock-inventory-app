@@ -159,4 +159,8 @@ class AdjustmentProcessor:
                 'start': self.filtered_data['일자'].min().strftime('%Y-%m-%d'),
                 'end': self.filtered_data['일자'].max().strftime('%Y-%m-%d')
             }
-        } 
+        }
+    
+    def get_filtered_data(self) -> Optional[pd.DataFrame]:
+        """필터링된 재고조정 데이터 반환"""
+        return self.filtered_data 

@@ -443,9 +443,14 @@ def main():
                 
                 # 보고서 데이터 생성
                 try:
-                    # 재고조정 데이터가 있으면 설정
+                    # 재고조정 데이터가 있으면 설정 (필터링된 데이터 사용)
                     if st.session_state.get('adjustment_data') is not None:
-                        st.session_state.report_generator.set_adjustment_data(st.session_state.adjustment_data)
+                        # 필터링된 데이터가 있으면 우선 사용, 없으면 전체 데이터 사용
+                        filtered_adj_data = getattr(st.session_state.adjustment_processor, 'filtered_data', None)
+                        if filtered_adj_data is not None:
+                            st.session_state.report_generator.set_adjustment_data(filtered_adj_data)
+                        else:
+                            st.session_state.report_generator.set_adjustment_data(st.session_state.adjustment_data)
                     
                     report_data = st.session_state.report_generator.generate_report_data(
                         st.session_state.part_data,

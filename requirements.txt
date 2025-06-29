@@ -2,5 +2,4 @@ streamlit==1.31.0
 pandas==1.5.3
 openpyxl==3.1.2
 plotly==5.17.0
-pywin32==310
-xlrd==1.2.0 
+# xlrd==1.2.0  # 로컬 환경에서만 필요 (웹앱 배포 시 주석 처리) 
