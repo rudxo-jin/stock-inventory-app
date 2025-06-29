@@ -50,27 +50,27 @@ class PartDataProcessor:
         # 결측값 처리
         df = df.dropna(subset=['제작사 품번', '부품명'])
         
-        # 숫자 컬럼 타입 변환
+        # 숫자 컬럼 타입 변환 (pandas 2.x 호환)
         df['재고'] = pd.to_numeric(df['재고'], errors='coerce').fillna(0)
         df['재고액'] = pd.to_numeric(df['재고액'], errors='coerce').fillna(0)
         
         # 음수값 처리 (0으로 변환)
-        df['재고'] = df['재고'].clip(lower=0)
-        df['재고액'] = df['재고액'].clip(lower=0)
+        df.loc[:, '재고'] = df['재고'].clip(lower=0)
+        df.loc[:, '재고액'] = df['재고액'].clip(lower=0)
         
         return df
     
     def _calculate_unit_prices(self, df: pd.DataFrame) -> pd.DataFrame:
         """단가 계산 (재고액 ÷ 재고)"""
         # 재고가 0인 경우 단가를 0으로 설정
-        df['단가'] = np.where(
+        df.loc[:, '단가'] = np.where(
             df['재고'] > 0,
             df['재고액'] / df['재고'],
             0
         )
         
         # 단가를 소수점 둘째 자리까지 반올림
-        df['단가'] = df['단가'].round(2)
+        df.loc[:, '단가'] = df['단가'].round(2)
         
         return df
     
