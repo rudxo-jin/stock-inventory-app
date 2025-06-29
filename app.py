@@ -308,29 +308,7 @@ def render_report_cards(report_data):
         if total_impact:
             st.markdown(render_total_impact_card(total_impact), unsafe_allow_html=True)
         
-        # 디버깅 정보 (토글 가능)
-        with st.expander("🔧 디버깅 정보"):
-            st.write("**세션 상태:**")
-            st.write(f"- final_data: {'있음' if st.session_state.final_data is not None else '없음'}")
-            st.write(f"- adjustment_summary: {'있음' if st.session_state.adjustment_summary is not None else '없음'}")
-            st.write(f"- adjustment_data: {'있음' if st.session_state.adjustment_data is not None else '없음'}")
-            
-            if st.session_state.adjustment_summary:
-                st.write("**adjustment_summary 내용:**")
-                st.json(st.session_state.adjustment_summary)
-            
-            st.write("**report_data 구조:**")
-            st.write(f"- inventory_comparison: {'있음' if 'inventory_comparison' in report_data else '없음'}")
-            st.write(f"- adjustment_impact: {'있음' if 'adjustment_impact' in report_data else '없음'}")
-            st.write(f"- total_impact: {'있음' if 'total_impact' in report_data else '없음'}")
-            
-            if 'adjustment_impact' in report_data:
-                st.write("**adjustment_impact 내용:**")
-                st.json(report_data['adjustment_impact'])
-            
-            if 'total_impact' in report_data:
-                st.write("**total_impact 내용:**")
-                st.json(report_data['total_impact'])
+
             
     except Exception as e:
         st.error(f"보고서 카드 렌더링 오류: {str(e)}")
@@ -734,33 +712,61 @@ def main():
                     # 엑셀 보고서 다운로드
                     st.markdown("### 📥 보고서 다운로드")
                     
+                    # 엑셀 보고서 생성 (세션 상태 기반)
+                    if 'excel_data' not in st.session_state:
+                        st.session_state.excel_data = None
+                    
                     col1, col2 = st.columns([1, 3])
                     with col1:
-                        if st.button("📊 엑셀 보고서 생성", type="primary"):
+                        if st.button("📊 엑셀 보고서 생성", type="primary", key="generate_excel"):
                             try:
                                 with st.spinner("📊 엑셀 보고서를 생성 중입니다..."):
-                                    excel_data = processors['report_generator'].create_excel_report()
+                                    # ReportGenerator에 모든 필요한 데이터 설정 확인
+                                    report_gen = processors['report_generator']
                                     
-                                    if excel_data:
-                                        st.success("✅ 엑셀 보고서가 생성되었습니다!")
-                                        
-                                        # 파일 다운로드 버튼
-                                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                                        filename = f"재고조사보고서_{timestamp}.xlsx"
-                                        
-                                        st.download_button(
-                                            label="📥 보고서 다운로드",
-                                            data=excel_data,
-                                            file_name=filename,
-                                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                                        )
+                                    # 데이터 설정 상태 확인
+                                    if not hasattr(report_gen, 'report_data') or report_gen.report_data is None:
+                                        st.error("❌ 보고서 데이터가 설정되지 않았습니다. 먼저 보고서를 생성해주세요.")
+                                        st.stop()
+                                    
+                                    # 엑셀 보고서 생성
+                                    excel_data = report_gen.create_excel_report()
+                                    
+                                    if excel_data and len(excel_data) > 0:
+                                        st.session_state.excel_data = excel_data
+                                        st.success("✅ 엑셀 보고서가 성공적으로 생성되었습니다!")
+                                        st.rerun()
                                     else:
-                                        st.error("❌ 엑셀 보고서 생성 실패")
+                                        st.error("❌ 엑셀 보고서 생성 실패: 데이터가 비어있습니다.")
+                                        
                             except Exception as e:
                                 st.error(f"❌ 보고서 생성 오류: {str(e)}")
+                                import traceback
+                                st.error(f"상세 오류: {traceback.format_exc()}")
+                        
+                        # 다운로드 버튼 (엑셀 데이터가 있을 때만 표시)
+                        if st.session_state.excel_data is not None:
+                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                            filename = f"재고조사보고서_{timestamp}.xlsx"
+                            
+                            st.download_button(
+                                label="📥 보고서 다운로드",
+                                data=st.session_state.excel_data,
+                                file_name=filename,
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="download_excel"
+                            )
+                            
+                            # 다운로드 후 세션 정리 (선택사항)
+                            if st.button("🔄 새 보고서 생성", key="reset_excel"):
+                                st.session_state.excel_data = None
+                                st.rerun()
                     
                     with col2:
-                        st.info("📋 **보고서 구성**: 요약보고서, 재고차이리스트, 재고조정리스트 (3개 시트)")
+                        st.info("📋 **보고서 구성**: 요약보고서, 재고차이리스트, 재고조정리스트 (5개 시트)")
+                        if st.session_state.excel_data is not None:
+                            file_size = len(st.session_state.excel_data) / 1024  # KB
+                            st.success(f"✅ 엑셀 파일 준비 완료 (크기: {file_size:.1f}KB)")
                 else:
                     st.error("❌ 보고서 데이터 생성 실패")
         else:
