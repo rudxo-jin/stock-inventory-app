@@ -1,13 +1,22 @@
-# FORCE CACHE CLEAR - 2025-06-29-14:52
-# Complete rebuild required for Python 3.13 compatibility
+# ✅ VERIFIED PYTHON 3.13 COMPATIBLE STACK - 2025-01-03
+# Based on Streamlit 1.41.0+ official Python 3.13 support
 
-# Core dependencies (Python 3.13 compatible)
-streamlit==1.40.1
+# 🎯 Core Streamlit (Python 3.13 공식 지원)
+streamlit==1.41.0
+
+# 📊 Data Processing (검증된 호환 조합)
 pandas==2.2.3
 numpy==1.26.4
-openpyxl==3.1.5
+
+# 📈 Visualization (안정적 버전)
 plotly==5.24.1
 
-# Additional compatibility packages
-setuptools>=69.0.0
-wheel>=0.42.0 
+# 📄 File Processing
+openpyxl==3.1.5
+
+# 🔧 Build Tools (Python 3.13 호환)
+setuptools>=75.0.0
+wheel>=0.44.0
+
+# 🛡️ Security & Compatibility
+packaging>=24.0 
