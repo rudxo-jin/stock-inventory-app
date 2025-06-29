@@ -443,6 +443,10 @@ def main():
                 
                 # 보고서 데이터 생성
                 try:
+                    # 재고조정 데이터가 있으면 설정
+                    if st.session_state.get('adjustment_data') is not None:
+                        st.session_state.report_generator.set_adjustment_data(st.session_state.adjustment_data)
+                    
                     report_data = st.session_state.report_generator.generate_report_data(
                         st.session_state.part_data,
                         st.session_state.inventory_data,

@@ -5,7 +5,7 @@ import streamlit as st
 
 
 class ExcelFileConverter:
-    """엑셀 파일 변환을 담당하는 클래스"""
+    """엑셀 파일 변환을 담당하는 클래스 (웹앱 배포 호환)"""
     
     @staticmethod
     def process_uploaded_file(uploaded_file):
@@ -31,43 +31,11 @@ class ExcelFileConverter:
     
     @staticmethod
     def convert_xls_to_xlsx(xls_path):
-        """XLS 파일을 XLSX로 변환"""
+        """XLS 파일을 XLSX로 변환 (크로스 플랫폼 호환)"""
         try:
-            # Windows COM을 사용한 변환
-            try:
-                import win32com.client as win32
-                
-                excel = win32.gencache.EnsureDispatch('Excel.Application')
-                excel.Visible = False
-                excel.DisplayAlerts = False
-                
-                # 절대 경로로 변환
-                abs_xls_path = os.path.abspath(xls_path)
-                xlsx_path = abs_xls_path.replace('.xls', '.xlsx')
-                
-                # 파일 열기
-                workbook = excel.Workbooks.Open(abs_xls_path)
-                
-                # XLSX 형식으로 저장 (FileFormat=51)
-                workbook.SaveAs(xlsx_path, FileFormat=51)
-                workbook.Close()
-                excel.Quit()
-                
-                return xlsx_path
-                
-            except ImportError:
-                # pywin32가 없는 경우 pandas로 시도
-                st.warning("⚠️ Windows COM을 사용할 수 없어 pandas로 변환을 시도합니다.")
-                return ExcelFileConverter.convert_with_pandas(xls_path)
-                
-        except Exception as e:
-            st.error(f"파일 변환 중 오류: {str(e)}")
-            return None
-    
-    @staticmethod
-    def convert_with_pandas(xls_path):
-        """pandas를 사용한 XLS 변환"""
-        try:
+            # pandas + xlrd를 사용한 변환 (웹앱 배포 호환)
+            st.info("📄 .xls 파일을 .xlsx로 변환 중...")
+            
             # xlrd 1.2.0을 사용하여 .xls 파일 읽기
             df = pd.read_excel(xls_path, engine='xlrd')
             
@@ -75,10 +43,12 @@ class ExcelFileConverter:
             xlsx_path = xls_path.replace('.xls', '.xlsx')
             df.to_excel(xlsx_path, index=False, engine='openpyxl')
             
+            st.success("✅ 파일 변환 완료")
             return xlsx_path
             
         except Exception as e:
-            st.error(f"pandas 변환 중 오류: {str(e)}")
+            st.error(f"파일 변환 중 오류: {str(e)}")
+            st.error("💡 .xls 파일 대신 .xlsx 파일을 사용해주세요.")
             return None
     
     @staticmethod

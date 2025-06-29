@@ -10,6 +10,11 @@ class ReportGenerator:
     def __init__(self):
         self.report_data = None
         self.summary_stats = None
+        # 다중 시트를 위한 데이터 저장
+        self.part_data = None
+        self.inventory_data = None
+        self.final_data = None
+        self.adjustment_data = None
     
     def generate_report_data(
         self, 
@@ -33,6 +38,11 @@ class ReportGenerator:
             보고서 데이터 딕셔너리
         """
         
+        # 다중 시트를 위한 데이터 저장
+        self.part_data = part_data
+        self.inventory_data = inventory_data
+        self.final_data = final_data
+        
         # 1. 전산재고 vs 실재고 비교
         inventory_comparison = self._calculate_inventory_comparison(part_data, inventory_data)
         
@@ -53,6 +63,10 @@ class ReportGenerator:
         
         self.report_data = report_data
         return report_data
+    
+    def set_adjustment_data(self, adjustment_data: pd.DataFrame):
+        """재고조정 원본 데이터 설정 (다중 시트용)"""
+        self.adjustment_data = adjustment_data
     
     def _calculate_inventory_comparison(self, part_data: pd.DataFrame, inventory_data: pd.DataFrame) -> Dict:
         """전산재고 vs 실재고 비교 계산"""
@@ -108,7 +122,7 @@ class ReportGenerator:
         }
     
     def create_excel_report(self) -> bytes:
-        """엑셀 보고서 생성 (메모리에서 바이트로 반환)"""
+        """다중 시트 엑셀 보고서 생성 (메모리에서 바이트로 반환)"""
         
         if self.report_data is None:
             raise ValueError("먼저 generate_report_data()를 실행해주세요.")
@@ -121,6 +135,30 @@ class ReportGenerator:
             # 1. 요약 보고서 시트
             summary_df = self._create_summary_sheet()
             summary_df.to_excel(writer, sheet_name='재고조사요약', index=False, header=False)
+            
+            # 2. 재고차이리스트 (-) 시트
+            if self.inventory_data is not None:
+                negative_diff_df = self._create_negative_diff_sheet()
+                if not negative_diff_df.empty:
+                    negative_diff_df.to_excel(writer, sheet_name='재고차이리스트(-)', index=False)
+            
+            # 3. 재고차이리스트 (+) 시트
+            if self.inventory_data is not None:
+                positive_diff_df = self._create_positive_diff_sheet()
+                if not positive_diff_df.empty:
+                    positive_diff_df.to_excel(writer, sheet_name='재고차이리스트(+)', index=False)
+            
+            # 4. 재고조정리스트 (+) 시트
+            if self.adjustment_data is not None:
+                positive_adj_df = self._create_positive_adjustment_sheet()
+                if not positive_adj_df.empty:
+                    positive_adj_df.to_excel(writer, sheet_name='재고조정리스트(+)', index=False)
+            
+            # 5. 재고조정리스트 (-) 시트
+            if self.adjustment_data is not None:
+                negative_adj_df = self._create_negative_adjustment_sheet()
+                if not negative_adj_df.empty:
+                    negative_adj_df.to_excel(writer, sheet_name='재고조정리스트(-)', index=False)
             
             # 워크시트 스타일링
             workbook = writer.book
@@ -285,6 +323,208 @@ class ReportGenerator:
         ])
         
         return pd.DataFrame(summary_data, columns=['항목', '금액'])
+    
+    def _create_negative_diff_sheet(self) -> pd.DataFrame:
+        """재고차이리스트 (-) 시트 생성"""
+        if self.inventory_data is None:
+            return pd.DataFrame()
+        
+        # 차이가 음수인 데이터만 필터링
+        negative_data = self.inventory_data[self.inventory_data['차이'] < 0].copy()
+        
+        if negative_data.empty:
+            return pd.DataFrame()
+        
+        # 필요한 컬럼만 선택하고 정렬
+        result_df = negative_data[[
+            '제작사 품번', '부품명', '단가', '재고', '재고액', 
+            '실재고', '실재고액', '차액', '차이'
+        ]].copy()
+        
+        # 컬럼명 정리
+        result_df.columns = [
+            '제작사품번', '부품명', '단가', '재고', '재고액',
+            '실재고', '실재고액', '차액', '차이'
+        ]
+        
+        # 차액 기준 오름차순 정렬 (가장 큰 손실부터)
+        result_df = result_df.sort_values('차액').reset_index(drop=True)
+        
+        # 합계 행 추가
+        if not result_df.empty:
+            total_row = pd.DataFrame({
+                '제작사품번': ['합계'],
+                '부품명': [''],
+                '단가': [''],
+                '재고': [result_df['재고'].sum()],
+                '재고액': [result_df['재고액'].sum()],
+                '실재고': [result_df['실재고'].sum()],
+                '실재고액': [result_df['실재고액'].sum()],
+                '차액': [result_df['차액'].sum()],
+                '차이': [result_df['차이'].sum()]
+            })
+            result_df = pd.concat([result_df, total_row], ignore_index=True)
+        
+        return result_df
+    
+    def _create_positive_diff_sheet(self) -> pd.DataFrame:
+        """재고차이리스트 (+) 시트 생성"""
+        if self.inventory_data is None:
+            return pd.DataFrame()
+        
+        # 차이가 양수인 데이터만 필터링
+        positive_data = self.inventory_data[self.inventory_data['차이'] > 0].copy()
+        
+        if positive_data.empty:
+            return pd.DataFrame()
+        
+        # 필요한 컬럼만 선택하고 정렬
+        result_df = positive_data[[
+            '제작사 품번', '부품명', '단가', '재고', '재고액', 
+            '실재고', '실재고액', '차액', '차이'
+        ]].copy()
+        
+        # 컬럼명 정리
+        result_df.columns = [
+            '제작사품번', '부품명', '단가', '재고', '재고액',
+            '실재고', '실재고액', '차액', '차이'
+        ]
+        
+        # 차액 기준 내림차순 정렬 (가장 큰 이익부터)
+        result_df = result_df.sort_values('차액', ascending=False).reset_index(drop=True)
+        
+        # 합계 행 추가
+        if not result_df.empty:
+            total_row = pd.DataFrame({
+                '제작사품번': ['합계'],
+                '부품명': [''],
+                '단가': [''],
+                '재고': [result_df['재고'].sum()],
+                '재고액': [result_df['재고액'].sum()],
+                '실재고': [result_df['실재고'].sum()],
+                '실재고액': [result_df['실재고액'].sum()],
+                '차액': [result_df['차액'].sum()],
+                '차이': [result_df['차이'].sum()]
+            })
+            result_df = pd.concat([result_df, total_row], ignore_index=True)
+        
+        return result_df
+    
+    def _create_positive_adjustment_sheet(self) -> pd.DataFrame:
+        """재고조정리스트 (+) 시트 생성"""
+        if self.adjustment_data is None:
+            return pd.DataFrame()
+        
+        # 조정구분이 '+'인 데이터만 필터링
+        if '조정구분' in self.adjustment_data.columns:
+            positive_data = self.adjustment_data[self.adjustment_data['조정구분'] == '+'].copy()
+        else:
+            # 수량변경에서 +가 포함된 데이터 필터링
+            positive_data = self.adjustment_data[
+                self.adjustment_data['수량변경'].astype(str).str.contains('\+|증가', na=False)
+            ].copy()
+        
+        if positive_data.empty:
+            return pd.DataFrame()
+        
+        result_df = self._process_adjustment_data(positive_data)
+        
+        # 합계 행 추가
+        if not result_df.empty:
+            total_row = pd.DataFrame({
+                '일자': ['합계'],
+                '구분': [''],
+                '제작사품번': [''],
+                '부품명': [''],
+                '수량': [result_df['수량'].sum()],
+                '단가': [''],
+                '금액': [result_df['금액'].sum()]
+            })
+            result_df = pd.concat([result_df, total_row], ignore_index=True)
+        
+        return result_df
+    
+    def _create_negative_adjustment_sheet(self) -> pd.DataFrame:
+        """재고조정리스트 (-) 시트 생성"""
+        if self.adjustment_data is None:
+            return pd.DataFrame()
+        
+        # 조정구분이 '-'인 데이터만 필터링
+        if '조정구분' in self.adjustment_data.columns:
+            negative_data = self.adjustment_data[self.adjustment_data['조정구분'] == '-'].copy()
+        else:
+            # 수량변경에서 -가 포함된 데이터 필터링
+            negative_data = self.adjustment_data[
+                self.adjustment_data['수량변경'].astype(str).str.contains('\-|감소', na=False)
+            ].copy()
+        
+        if negative_data.empty:
+            return pd.DataFrame()
+        
+        result_df = self._process_adjustment_data(negative_data)
+        
+        # 합계 행 추가
+        if not result_df.empty:
+            total_row = pd.DataFrame({
+                '일자': ['합계'],
+                '구분': [''],
+                '제작사품번': [''],
+                '부품명': [''],
+                '수량': [result_df['수량'].sum()],
+                '단가': [''],
+                '금액': [result_df['금액'].sum()]
+            })
+            result_df = pd.concat([result_df, total_row], ignore_index=True)
+        
+        return result_df
+    
+    def _process_adjustment_data(self, data: pd.DataFrame) -> pd.DataFrame:
+        """재고조정 데이터 공통 처리"""
+        result_df = data.copy()
+        
+        # 필요한 컬럼만 선택
+        if '조정구분' in result_df.columns:
+            result_df = result_df[['일자', '조정구분', '제작사품번', '부품명', '수량']].copy()
+            result_df.columns = ['일자', '구분', '제작사품번', '부품명', '수량']
+        else:
+            result_df = result_df[['일자', '수량변경', '제작사품번', '부품명', '수량']].copy()
+            result_df.columns = ['일자', '구분', '제작사품번', '부품명', '수량']
+        
+        # 단가와 금액 계산
+        result_df['단가'] = 0
+        result_df['금액'] = 0
+        
+        # inventory_data나 part_data에서 단가 매칭
+        if self.inventory_data is not None:
+            for idx, row in result_df.iterrows():
+                part_code = row['제작사품번']
+                quantity = row['수량']
+                
+                # inventory_data에서 단가 찾기
+                matching_rows = self.inventory_data[self.inventory_data['제작사 품번'] == part_code]
+                if not matching_rows.empty:
+                    unit_price = matching_rows.iloc[0]['단가']
+                    result_df.loc[idx, '단가'] = unit_price
+                    result_df.loc[idx, '금액'] = quantity * unit_price
+                elif self.part_data is not None:
+                    # part_data에서 단가 찾기
+                    matching_parts = self.part_data[self.part_data['제작사 품번'] == part_code]
+                    if not matching_parts.empty:
+                        # 재고액/재고로 단가 계산
+                        stock = matching_parts.iloc[0]['재고']
+                        stock_value = matching_parts.iloc[0]['재고액']
+                        if stock > 0:
+                            unit_price = stock_value / stock
+                            result_df.loc[idx, '단가'] = unit_price
+                            result_df.loc[idx, '금액'] = quantity * unit_price
+        
+        # 일자 기준 정렬
+        result_df = result_df.sort_values('일자').reset_index(drop=True)
+        
+        # 일자 포맷 변경
+        result_df['일자'] = pd.to_datetime(result_df['일자']).dt.strftime('%Y-%m-%d')
+        
+        return result_df
     
     def get_summary_stats(self) -> Dict:
         """요약 통계 반환 (UI 표시용)"""
