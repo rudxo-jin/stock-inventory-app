@@ -444,7 +444,7 @@ class ReportGenerator:
         else:
             # 수량변경에서 +가 포함된 데이터 필터링
             positive_data = self.adjustment_data[
-                self.adjustment_data['수량변경'].astype(str).str.contains('\+|증가', na=False)
+                self.adjustment_data['수량변경'].astype(str).str.contains(r'\+|증가', na=False)
             ].copy()
         
         if positive_data.empty:
@@ -478,7 +478,7 @@ class ReportGenerator:
         else:
             # 수량변경에서 -가 포함된 데이터 필터링
             negative_data = self.adjustment_data[
-                self.adjustment_data['수량변경'].astype(str).str.contains('\-|감소', na=False)
+                self.adjustment_data['수량변경'].astype(str).str.contains(r'\-|감소', na=False)
             ].copy()
         
         if negative_data.empty:
