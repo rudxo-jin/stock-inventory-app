@@ -121,6 +121,10 @@ class ReportGenerator:
     def _calculate_adjustment_impact(self, inventory_data: pd.DataFrame, final_data: pd.DataFrame, adj_summary: Dict) -> Dict:
         """재고조정 영향 계산"""
         
+        # adj_summary가 None이면 기본값 사용
+        if adj_summary is None:
+            adj_summary = {}
+        
         positive_adj = adj_summary.get('positive_amount', 0)
         negative_adj = abs(adj_summary.get('negative_amount', 0))  # 절댓값
         adjustment_diff = positive_adj - negative_adj

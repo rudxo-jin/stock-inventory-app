@@ -298,15 +298,39 @@ def render_report_cards(report_data):
         if 'inventory_comparison' in report_data:
             st.markdown(render_inventory_comparison_card(report_data['inventory_comparison']), unsafe_allow_html=True)
         
-        # 재고조정 영향 카드 (조건부)
+        # 재고조정 영향 카드 (항상 표시 - 재고조정 적용 여부와 상관없이)
         adjustment_impact = report_data.get('adjustment_impact', {})
-        if adjustment_impact and (adjustment_impact.get('positive_adjustment', 0) != 0 or adjustment_impact.get('negative_adjustment', 0) != 0):
+        if adjustment_impact:
             st.markdown(render_adjustment_impact_card(adjustment_impact), unsafe_allow_html=True)
         
-        # 총 재고차액 카드 (조건부)
+        # 총 재고차액 카드 (항상 표시)
         total_impact = report_data.get('total_impact', {})
-        if total_impact and (total_impact.get('total_positive', 0) != 0 or total_impact.get('total_negative', 0) != 0):
+        if total_impact:
             st.markdown(render_total_impact_card(total_impact), unsafe_allow_html=True)
+        
+        # 디버깅 정보 (토글 가능)
+        with st.expander("🔧 디버깅 정보"):
+            st.write("**세션 상태:**")
+            st.write(f"- final_data: {'있음' if st.session_state.final_data is not None else '없음'}")
+            st.write(f"- adjustment_summary: {'있음' if st.session_state.adjustment_summary is not None else '없음'}")
+            st.write(f"- adjustment_data: {'있음' if st.session_state.adjustment_data is not None else '없음'}")
+            
+            if st.session_state.adjustment_summary:
+                st.write("**adjustment_summary 내용:**")
+                st.json(st.session_state.adjustment_summary)
+            
+            st.write("**report_data 구조:**")
+            st.write(f"- inventory_comparison: {'있음' if 'inventory_comparison' in report_data else '없음'}")
+            st.write(f"- adjustment_impact: {'있음' if 'adjustment_impact' in report_data else '없음'}")
+            st.write(f"- total_impact: {'있음' if 'total_impact' in report_data else '없음'}")
+            
+            if 'adjustment_impact' in report_data:
+                st.write("**adjustment_impact 내용:**")
+                st.json(report_data['adjustment_impact'])
+            
+            if 'total_impact' in report_data:
+                st.write("**total_impact 내용:**")
+                st.json(report_data['total_impact'])
             
     except Exception as e:
         st.error(f"보고서 카드 렌더링 오류: {str(e)}")
@@ -691,9 +715,13 @@ def main():
                 elif st.session_state.adjustment_data is not None:
                     processors['report_generator'].set_adjustment_data(st.session_state.adjustment_data)
                 
+                # 보고서 데이터 생성 (모든 필요한 데이터 전달)
                 report_data = processors['report_generator'].generate_report_data(
                     inventory_data=report_data_source,
-                    store_info=store_info
+                    store_info=store_info,
+                    part_data=st.session_state.part_data,
+                    final_data=st.session_state.final_data,
+                    adjustment_summary=st.session_state.adjustment_summary
                 )
                 
                 if report_data:
