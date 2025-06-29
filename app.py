@@ -134,20 +134,21 @@ def main():
                 try:
                     template = st.session_state.part_processor.create_inventory_template()
                     
-                    # 엑셀 파일로 저장
-                    template_path = os.path.join("templates", "실재고입력템플릿.xlsx")
-                    template.to_excel(template_path, index=False, engine='openpyxl')
+                    # 메모리에서 엑셀 파일 생성 (웹 배포 호환)
+                    from io import BytesIO
+                    buffer = BytesIO()
+                    template.to_excel(buffer, index=False, engine='openpyxl')
+                    buffer.seek(0)
                     
                     st.success("✅ 템플릿이 생성되었습니다!")
                     
                     # 파일 다운로드 버튼
-                    with open(template_path, "rb") as file:
-                        st.download_button(
-                            label="📥 템플릿 다운로드",
-                            data=file,
-                            file_name="실재고입력템플릿.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
+                    st.download_button(
+                        label="📥 템플릿 다운로드",
+                        data=buffer.getvalue(),
+                        file_name="실재고입력템플릿.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
                     
                     # 템플릿 미리보기
                     st.markdown("### 📋 템플릿 미리보기")
@@ -553,7 +554,7 @@ def main():
 
     # 푸터
     st.markdown("---")
-    st.markdown("**재고조사 앱 v1.0** | 개발: Claude AI Assistant")
+    st.markdown("**재고조사 앱 v1.0** | 개발: 평우서비스 운영사업본부 AI기술팀")
 
 if __name__ == "__main__":
     main() 

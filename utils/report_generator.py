@@ -68,14 +68,7 @@ class ReportGenerator:
         """재고조정 데이터 설정 (다중 시트용)"""
         self.adjustment_data = adjustment_data
         
-        # 디버그 정보 (데이터 범위 확인)
-        if adjustment_data is not None and not adjustment_data.empty:
-            try:
-                min_date = adjustment_data['일자'].min().strftime('%Y-%m-%d')
-                max_date = adjustment_data['일자'].max().strftime('%Y-%m-%d')
-                print(f"📊 ReportGenerator에 설정된 재고조정 데이터: {len(adjustment_data)}건 ({min_date} ~ {max_date})")
-            except:
-                print(f"📊 ReportGenerator에 설정된 재고조정 데이터: {len(adjustment_data)}건")
+        # 웹 배포용: 디버그 정보 제거
     
     def _calculate_inventory_comparison(self, part_data: pd.DataFrame, inventory_data: pd.DataFrame) -> Dict:
         """전산재고 vs 실재고 비교 계산"""

@@ -20,29 +20,36 @@
 
 ## 🛠️ 설치 및 실행
 
-### 로컬 환경 (Windows)
+### 🌐 웹앱 사용 (권장)
+
+배포된 웹앱에서 바로 사용하세요:
+- **URL**: [배포 후 링크 업데이트 예정]
+- **지원 파일**: .xlsx 파일만 지원
+- **변환 필요**: .xls 파일은 Excel에서 .xlsx로 저장 후 업로드
+
+### 💻 로컬 환경 (Windows)
 
 ```bash
 # 저장소 클론
 git clone <repository-url>
 cd stock_app
 
-# 로컬용 의존성 설치
-pip install -r requirements-local.txt
-
-# 앱 실행
-streamlit run app.py --server.port 8530
-```
-
-### 웹앱 배포 (Streamlit Cloud, Heroku 등)
-
-```bash
-# 배포용 의존성 사용
+# 의존성 설치
 pip install -r requirements.txt
+
+# 로컬에서 .xls 지원 원할 시 (선택사항)
+pip install xlrd==1.2.0
 
 # 앱 실행
 streamlit run app.py
 ```
+
+### 🚀 Streamlit Cloud 배포
+
+1. GitHub 저장소 연결
+2. `app.py` 메인 파일 지정
+3. `requirements.txt` 자동 인식
+4. 배포 완료
 
 ## 📁 파일 지원
 
