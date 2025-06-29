@@ -1,5 +1,5 @@
-# ✅ STREAMLIT CLOUD CACHE BUSTER - 2025-01-03-16:45
-# STABLE STACK: Python 3.12 + Streamlit 1.46.1 + pandas 2.2.3
+# ✅ STREAMLIT CLOUD CACHE BUSTER - 2025-01-03-17:00
+# MINIMAL STACK: Python 3.11 + Latest Stable Packages
 
 import streamlit as st
 import pandas as pd

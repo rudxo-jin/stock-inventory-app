@@ -1,22 +1,6 @@
-# ✅ PYTHON 3.12 VERIFIED STABLE STACK - 2025-01-03
-# 100% 호환성 검증된 조합 - 프로덕션 레벨
-
-# 🎯 Core Framework (Python 3.12 완전 지원)
-streamlit==1.46.1
-
-# 📊 Data Processing (안정적 LTS 조합)
-pandas==2.2.3
-numpy==1.26.4
-
-# 📈 Visualization (호환성 검증)
-plotly==5.24.1
-
-# 📄 File Processing (안정적)
-openpyxl==3.1.5
-
-# 🔧 Build Support (Python 3.12 최적화)
-setuptools>=75.0.0
-wheel>=0.44.0
-
-# 🛡️ Compatibility
-packaging>=24.0 
+# ✅ MINIMAL STABLE STACK - Streamlit Cloud Optimized
+streamlit
+pandas
+numpy
+plotly
+openpyxl 
