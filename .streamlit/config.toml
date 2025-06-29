@@ -19,4 +19,8 @@ installTracer = false
 fixMatplotlib = true
 
 [logger]
-level = "info" 
+level = "info"
+
+# Python 3.13 호환성 설정
+[client]
+toolbarMode = "minimal" 
