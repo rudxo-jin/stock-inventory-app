@@ -185,19 +185,19 @@ def render_store_info_card(store_info):
             <table class="metric-table">
                 <tr class="metric-row">
                     <td class="metric-label">점포명</td>
-                    <td class="metric-value">{store_info['store_name']}</td>
+                    <td class="metric-value">{store_info.get('store_name', '-')}</td>
                 </tr>
                 <tr class="metric-row">
                     <td class="metric-label">조사일시</td>
-                    <td class="metric-value">{store_info['survey_date']}</td>
+                    <td class="metric-value">{store_info.get('survey_date', '-')}</td>
                 </tr>
                 <tr class="metric-row">
                     <td class="metric-label">조사방식</td>
-                    <td class="metric-value">{store_info['survey_method']}</td>
+                    <td class="metric-value">{store_info.get('survey_method', '-')}</td>
                 </tr>
                 <tr class="metric-row">
                     <td class="metric-label">조사인원</td>
-                    <td class="metric-value">{store_info['survey_staff']}</td>
+                    <td class="metric-value">{store_info.get('survey_staff', '-')}</td>
                 </tr>
             </table>
         </div>
@@ -213,23 +213,23 @@ def render_inventory_comparison_card(inv_comp):
             <table class="metric-table">
                 <tr class="metric-row">
                     <td class="metric-label">전산재고액</td>
-                    <td class="metric-value">{inv_comp['computer_stock_value']:,.0f}원</td>
+                    <td class="metric-value">{inv_comp.get('computer_stock_value', 0):,.0f}원</td>
                 </tr>
                 <tr class="metric-row">
                     <td class="metric-label">(+) 실재고액</td>
-                    <td class="metric-value positive-value">+{inv_comp['positive_amount']:,.0f}원</td>
+                    <td class="metric-value positive-value">+{inv_comp.get('positive_amount', 0):,.0f}원</td>
                 </tr>
                 <tr class="metric-row">
                     <td class="metric-label">(-) 실재고액</td>
-                    <td class="metric-value negative-value">-{inv_comp['negative_amount']:,.0f}원</td>
+                    <td class="metric-value negative-value">-{inv_comp.get('negative_amount', 0):,.0f}원</td>
                 </tr>
                 <tr class="metric-row">
                     <td class="metric-label">최종재고액</td>
-                    <td class="metric-value">{inv_comp['final_stock_value']:,.0f}원</td>
+                    <td class="metric-value">{inv_comp.get('final_stock_value', 0):,.0f}원</td>
                 </tr>
                 <tr class="metric-row">
                     <td class="metric-label total-label">차액</td>
-                    <td class="metric-value total-value">{inv_comp['difference']:+,.0f}원</td>
+                    <td class="metric-value total-value">{inv_comp.get('difference', 0):+,.0f}원</td>
                 </tr>
             </table>
         </div>
@@ -245,15 +245,15 @@ def render_adjustment_impact_card(adj_imp):
             <table class="metric-table">
                 <tr class="metric-row">
                     <td class="metric-label">(+) 재고조정액</td>
-                    <td class="metric-value positive-value">+{adj_imp['positive_adjustment']:,.0f}원</td>
+                    <td class="metric-value positive-value">+{adj_imp.get('positive_adjustment', 0):,.0f}원</td>
                 </tr>
                 <tr class="metric-row">
                     <td class="metric-label">(-) 재고조정액</td>
-                    <td class="metric-value negative-value">-{adj_imp['negative_adjustment']:,.0f}원</td>
+                    <td class="metric-value negative-value">-{adj_imp.get('negative_adjustment', 0):,.0f}원</td>
                 </tr>
                 <tr class="metric-row">
                     <td class="metric-label total-label">조정 차액</td>
-                    <td class="metric-value total-value">{adj_imp['adjustment_difference']:+,.0f}원</td>
+                    <td class="metric-value total-value">{adj_imp.get('adjustment_difference', 0):+,.0f}원</td>
                 </tr>
             </table>
         </div>
@@ -269,15 +269,15 @@ def render_total_impact_card(total_imp):
             <table class="metric-table">
                 <tr class="metric-row">
                     <td class="metric-label">(+) 총재고차액</td>
-                    <td class="metric-value positive-value">+{total_imp['total_positive']:,.0f}원</td>
+                    <td class="metric-value positive-value">+{total_imp.get('total_positive', 0):,.0f}원</td>
                 </tr>
                 <tr class="metric-row">
                     <td class="metric-label">(-) 총재고차액</td>
-                    <td class="metric-value negative-value">-{total_imp['total_negative']:,.0f}원</td>
+                    <td class="metric-value negative-value">-{total_imp.get('total_negative', 0):,.0f}원</td>
                 </tr>
                 <tr class="metric-row">
                     <td class="metric-label total-label">총재고차액 계</td>
-                    <td class="metric-value total-value">{total_imp['grand_total']:+,.0f}원</td>
+                    <td class="metric-value total-value">{total_imp.get('total_difference', 0):+,.0f}원</td>
                 </tr>
             </table>
         </div>
@@ -286,19 +286,33 @@ def render_total_impact_card(total_imp):
 
 def render_report_cards(report_data):
     """보고서 카드 렌더링 (원래 UIComponents와 동일한 스타일)"""
-    # CSS 스타일 적용
-    st.markdown(get_card_styles(), unsafe_allow_html=True)
-    
-    # 4개 카드 렌더링
-    st.markdown(render_store_info_card(report_data['store_info']), unsafe_allow_html=True)
-    st.markdown(render_inventory_comparison_card(report_data['inventory_comparison']), unsafe_allow_html=True)
-    
-    # 재고조정 데이터가 있는 경우에만 표시
-    if 'adjustment_impact' in report_data and report_data['adjustment_impact']:
-        st.markdown(render_adjustment_impact_card(report_data['adjustment_impact']), unsafe_allow_html=True)
-    
-    if 'total_impact' in report_data and report_data['total_impact']:
-        st.markdown(render_total_impact_card(report_data['total_impact']), unsafe_allow_html=True)
+    try:
+        # CSS 스타일 적용
+        st.markdown(get_card_styles(), unsafe_allow_html=True)
+        
+        # 점포 정보 카드 (필수)
+        if 'store_info' in report_data:
+            st.markdown(render_store_info_card(report_data['store_info']), unsafe_allow_html=True)
+        
+        # 재고 비교 카드 (필수)
+        if 'inventory_comparison' in report_data:
+            st.markdown(render_inventory_comparison_card(report_data['inventory_comparison']), unsafe_allow_html=True)
+        
+        # 재고조정 영향 카드 (조건부)
+        adjustment_impact = report_data.get('adjustment_impact', {})
+        if adjustment_impact and (adjustment_impact.get('positive_adjustment', 0) != 0 or adjustment_impact.get('negative_adjustment', 0) != 0):
+            st.markdown(render_adjustment_impact_card(adjustment_impact), unsafe_allow_html=True)
+        
+        # 총 재고차액 카드 (조건부)
+        total_impact = report_data.get('total_impact', {})
+        if total_impact and (total_impact.get('total_positive', 0) != 0 or total_impact.get('total_negative', 0) != 0):
+            st.markdown(render_total_impact_card(total_impact), unsafe_allow_html=True)
+            
+    except Exception as e:
+        st.error(f"보고서 카드 렌더링 오류: {str(e)}")
+        # 디버그 정보
+        st.write("디버그 정보:")
+        st.write(f"report_data 키들: {list(report_data.keys()) if isinstance(report_data, dict) else 'report_data가 딕셔너리가 아님'}")
 
 # 메인 함수
 def main():
