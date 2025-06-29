@@ -4,11 +4,25 @@ import os
 from datetime import datetime, date
 
 # utils 모듈 import
-from utils.data_processor import PartDataProcessor
-from utils.adjustment_processor import AdjustmentProcessor
-from utils.file_converter import ExcelFileConverter
-from utils.report_generator import ReportGenerator
-from utils.ui_components import UIComponents
+try:
+    from utils.data_processor import PartDataProcessor
+    from utils.adjustment_processor import AdjustmentProcessor
+    from utils.file_converter import ExcelFileConverter
+    from utils.report_generator import ReportGenerator
+except ImportError as e:
+    st.error(f"모듈 import 오류: {e}")
+    # 대안으로 직접 import 시도
+    try:
+        import sys
+        import os
+        sys.path.append(os.path.dirname(__file__))
+        from utils.data_processor import PartDataProcessor
+        from utils.adjustment_processor import AdjustmentProcessor
+        from utils.file_converter import ExcelFileConverter
+        from utils.report_generator import ReportGenerator
+    except Exception as fallback_error:
+        st.error(f"모듈 로드 실패: {fallback_error}")
+        st.stop()
 
 # 페이지 설정 (배포 최적화)
 st.set_page_config(
@@ -38,13 +52,81 @@ def get_processors():
         st.error(f"프로세서 초기화 오류: {str(e)}")
         return None
 
+# UI 컴포넌트 함수들 (UIComponents 대체)
+def show_progress_sidebar():
+    """사이드바에 진행 단계 표시"""
+    with st.sidebar:
+        st.markdown("### 📋 진행 단계")
+        
+        steps = [
+            "1️⃣ PART 파일 업로드",
+            "2️⃣ 실재고 템플릿 생성", 
+            "3️⃣ 실재고 데이터 입력",
+            "4️⃣ 재고조정 적용",
+            "5️⃣ 결과보고서 생성"
+        ]
+        
+        current_step = st.session_state.get('step', 1)
+        
+        for i, step_name in enumerate(steps, 1):
+            if i <= current_step:
+                st.success(step_name)
+            elif i == current_step + 1:
+                st.info(step_name)
+            else:
+                st.write(step_name)
+
+def render_store_info_form():
+    """점포 정보 입력 폼"""
+    with st.form("store_info_form"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            store_name = st.text_input("점포명", value="고양점", placeholder="예: 고양점")
+            survey_method = st.selectbox("조사방식", ["전수조사", "표본조사"], index=0)
+        
+        with col2:
+            from datetime import date
+            survey_date = st.date_input("재고조사일시", value=date.today())
+            survey_staff = st.text_input("조사인원", value="", placeholder="조사에 참석한 직원명 표기")
+        
+        generate_report = st.form_submit_button("📋 보고서 생성", type="primary")
+        
+        if generate_report:
+            return {
+                'store_name': store_name,
+                'survey_date': survey_date.strftime('%Y년 %m월 %d일'),
+                'survey_method': survey_method,
+                'survey_staff': survey_staff
+            }
+        return None
+
+def render_report_cards(report_data):
+    """보고서 카드 렌더링"""
+    # 간단한 메트릭 카드로 대체
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("🏪 점포 정보")
+        st.write(f"**점포명**: {report_data['store_info']['store_name']}")
+        st.write(f"**조사일시**: {report_data['store_info']['survey_date']}")
+        st.write(f"**조사방식**: {report_data['store_info']['survey_method']}")
+        st.write(f"**조사인원**: {report_data['store_info']['survey_staff']}")
+    
+    with col2:
+        st.subheader("📊 재고 요약")
+        inv_comp = report_data['inventory_comparison']
+        st.metric("전산재고액", f"{inv_comp['computer_stock_value']:,.0f}원")
+        st.metric("최종재고액", f"{inv_comp['final_stock_value']:,.0f}원")
+        st.metric("차액", f"{inv_comp['difference']:+,.0f}원", delta=f"{inv_comp['difference']:+,.0f}원")
+
 # 메인 함수
 def main():
     st.title("📦 재고조사 앱")
     st.markdown("---")
     
     # 사이드바 진행 단계 표시
-    UIComponents.show_progress_sidebar()
+    show_progress_sidebar()
     
     # 캐시된 프로세서 가져오기
     processors = get_processors()
@@ -402,7 +484,7 @@ def main():
         # 조건 확인 (step >= 3이고 inventory_data가 있으면 OK)
         if st.session_state.step >= 3 and st.session_state.inventory_data is not None:
             # 점포 정보 입력
-            store_info = UIComponents.render_store_info_form()
+            store_info = render_store_info_form()
             
             if store_info:
                 # final_data가 없으면 inventory_data 사용
@@ -422,7 +504,7 @@ def main():
                 
                 if report_data:
                     # 보고서 카드 표시
-                    UIComponents.render_report_cards(report_data)
+                    render_report_cards(report_data)
                     
                     # 요약 통계
                     stats = processors['report_generator'].get_summary_stats()
