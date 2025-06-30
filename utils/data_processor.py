@@ -48,7 +48,7 @@ class PartDataProcessor:
     def _clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """데이터 정리 및 검증"""
         # 결측값 처리
-        df = df.dropna(subset=['제작사 품번', '부품명'])
+        df = df.dropna(subset=['제작사 품번', '부품명']).copy()  # 추가적인 copy() 호출
         
         # 숫자 컬럼 타입 변환 (pandas 2.x 호환)
         df.loc[:, '재고'] = pd.to_numeric(df['재고'], errors='coerce').fillna(0)
