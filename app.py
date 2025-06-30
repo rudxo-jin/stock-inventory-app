@@ -344,6 +344,102 @@ def render_report_cards(report_data):
         st.write("디버그 정보:")
         st.write(f"report_data 키들: {list(report_data.keys()) if isinstance(report_data, dict) else 'report_data가 딕셔너리가 아님'}")
 
+def create_processed_inventory_excel(processed_data):
+    """처리된 실재고 데이터를 엑셀 파일로 변환"""
+    try:
+        from io import BytesIO
+        
+        # 메모리에서 엑셀 파일 생성
+        buffer = BytesIO()
+        
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            # 처리된 데이터를 엑셀로 저장
+            processed_data.to_excel(writer, sheet_name='완성된실재고데이터', index=False)
+            
+            # 워크시트 스타일링
+            workbook = writer.book
+            worksheet = writer.sheets['완성된실재고데이터']
+            
+            # 스타일 임포트
+            from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+            from openpyxl.utils import get_column_letter
+            
+            # 색상 정의
+            header_fill = PatternFill(start_color="2F5597", end_color="2F5597", fill_type="solid")    # 헤더용 진한 네이비
+            positive_fill = PatternFill(start_color="E8F5E8", end_color="E8F5E8", fill_type="solid")  # 양수용 연한 녹색
+            negative_fill = PatternFill(start_color="FFE8E8", end_color="FFE8E8", fill_type="solid")  # 음수용 연한 빨간색
+            
+            # 폰트 정의
+            header_font = Font(bold=True, color="FFFFFF", size=11)  # 헤더용 흰색 볼드
+            normal_font = Font(size=10)
+            
+            # 테두리 정의
+            thin_border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            
+            # 헤더 스타일 적용
+            for col_num in range(1, len(processed_data.columns) + 1):
+                cell = worksheet.cell(row=1, column=col_num)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+                cell.border = thin_border
+            
+            # 데이터 행 스타일 적용
+            for row_num in range(2, len(processed_data) + 2):
+                for col_num in range(1, len(processed_data.columns) + 1):
+                    cell = worksheet.cell(row=row_num, column=col_num)
+                    cell.font = normal_font
+                    cell.border = thin_border
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
+                    
+                    # 차이값 컬럼에 색상 적용 (차이 컬럼이 있을 경우)
+                    if '차이' in processed_data.columns:
+                        diff_col_idx = processed_data.columns.get_loc('차이') + 1
+                        if col_num == diff_col_idx:
+                            diff_value = processed_data.iloc[row_num - 2]['차이']
+                            if diff_value > 0:
+                                cell.fill = positive_fill
+                            elif diff_value < 0:
+                                cell.fill = negative_fill
+                    
+                    # 차액 컬럼에 색상 적용 (차액 컬럼이 있을 경우)
+                    if '차액' in processed_data.columns:
+                        amount_col_idx = processed_data.columns.get_loc('차액') + 1
+                        if col_num == amount_col_idx:
+                            amount_value = processed_data.iloc[row_num - 2]['차액']
+                            if amount_value > 0:
+                                cell.fill = positive_fill
+                            elif amount_value < 0:
+                                cell.fill = negative_fill
+            
+            # 컬럼 너비 자동 조정
+            for col_num in range(1, len(processed_data.columns) + 1):
+                column_letter = get_column_letter(col_num)
+                col_name = processed_data.columns[col_num - 1]
+                
+                # 컬럼별 적절한 너비 설정
+                if '제품명' in col_name:
+                    worksheet.column_dimensions[column_letter].width = 30
+                elif '제작사품번' in col_name:
+                    worksheet.column_dimensions[column_letter].width = 20
+                elif '차액' in col_name or '재고액' in col_name:
+                    worksheet.column_dimensions[column_letter].width = 15
+                else:
+                    worksheet.column_dimensions[column_letter].width = 12
+        
+        # 바이트 데이터 반환
+        buffer.seek(0)
+        return buffer.getvalue()
+        
+    except Exception as e:
+        st.error(f"엑셀 파일 생성 오류: {str(e)}")
+        return None
+
 # 메인 함수
 def main():
     st.title("📦 재고조사 앱")
@@ -559,6 +655,25 @@ def main():
                             # 데이터 미리보기
                             st.markdown("### 📋 데이터 미리보기")
                             st.dataframe(processed_data.head(10), use_container_width=True)
+                            
+                            # 처리된 데이터 다운로드 기능 추가
+                            st.markdown("### 📥 완성된 실재고 파일 다운로드")
+                            st.write("계산이 완료된 실재고 데이터를 엑셀 파일로 다운로드할 수 있습니다.")
+                            
+                            # 엑셀 파일 생성
+                            excel_data = create_processed_inventory_excel(processed_data)
+                            if excel_data:
+                                st.download_button(
+                                    label="📊 완성된 실재고 파일 다운로드",
+                                    data=excel_data,
+                                    file_name=f"완성된_실재고데이터_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    type="primary",
+                                    help="처리가 완료된 실재고 데이터를 엑셀 파일로 다운로드합니다."
+                                )
+                                st.success("✅ 엑셀 파일이 준비되었습니다. 위 버튼을 클릭하여 다운로드하세요.")
+                            else:
+                                st.error("❌ 엑셀 파일 생성에 실패했습니다.")
                             
                         else:
                             st.error(message)
