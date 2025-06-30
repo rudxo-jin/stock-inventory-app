@@ -746,33 +746,36 @@ def main():
                         # 날짜 범위 설정
                         st.markdown("### 📅 적용 기간 설정")
                         
-                        # 기본값 설정
-                        max_date = adj_data['일자'].max().date() if not adj_data.empty else date.today()
+                        # 기본값 설정 - 실용적인 기본값
+                        today = date.today()
+                        # 6개월 전 계산
+                        if today.month > 6:
+                            default_start_date = date(today.year, today.month - 6, today.day)
+                        else:
+                            default_start_date = date(today.year - 1, today.month + 6, today.day)
                         
                         # 폼으로 모든 날짜 입력과 적용 버튼을 함께 처리
                         with st.form("adjustment_form"):
-                            st.markdown("**📌 기간 설정 가이드:** 종료일을 먼저 선택하면 시작일이 해당 연도 1월 1일로 자동 설정됩니다.")
+                            st.markdown("**📌 기간 설정 가이드:** 기본적으로 최근 6개월 기간이 설정됩니다. 필요에 따라 조정하세요.")
                             
                             col1, col2 = st.columns(2)
                             
                             with col1:
-                                end_date = st.date_input(
-                                    "🗓️ 종료일",
-                                    value=max_date,
-                                    min_value=date(2010, 1, 1),
-                                    max_value=date(2030, 12, 31),
-                                    key="adjustment_end_date_form"
-                                )
-                            
-                            with col2:
-                                # 종료일이 선택되면 해당 연도의 1월 1일을 시작일 기본값으로 설정
-                                default_start_date = date(end_date.year, 1, 1)
                                 start_date = st.date_input(
                                     "📅 시작일",
                                     value=default_start_date,
                                     min_value=date(2010, 1, 1),
                                     max_value=date(2030, 12, 31),
-                                    help=f"자동: {end_date.year}년 1월 1일"
+                                    key="adjustment_start_date_form"
+                                )
+                            
+                            with col2:
+                                end_date = st.date_input(
+                                    "🗓️ 종료일",
+                                    value=today,
+                                    min_value=date(2010, 1, 1),
+                                    max_value=date(2030, 12, 31),
+                                    key="adjustment_end_date_form"
                                 )
                             
                             # 선택된 기간 표시
