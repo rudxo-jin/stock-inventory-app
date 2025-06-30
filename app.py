@@ -746,29 +746,30 @@ def main():
                         # 날짜 범위 설정
                         st.markdown("### 📅 적용 기간 설정")
                         
-                        # 폼으로 날짜 입력과 적용 버튼을 함께 처리
+                        # 종료일 먼저 선택 (폼 밖에서)
+                        max_date = adj_data['일자'].max().date() if not adj_data.empty else date.today()
+                        
+                        # 종료일 선택
+                        end_date = st.date_input(
+                            "종료일",
+                            value=max_date,
+                            min_value=date(1900, 1, 1),
+                            max_value=date(2100, 12, 31),
+                            key="adjustment_end_date"
+                        )
+                        
+                        # 종료일이 선택되면 해당 연도의 1월 1일을 시작일 기본값으로 설정
+                        default_start_date = date(end_date.year, 1, 1)
+                        
+                        # 폼으로 시작일 입력과 적용 버튼을 함께 처리
                         with st.form("adjustment_form"):
-                            col1, col2 = st.columns(2)
-                            
-                            with col1:
-                                # 기본값을 조정 데이터의 최소/최대 날짜로 설정
-                                min_date = adj_data['일자'].min().date() if not adj_data.empty else date.today()
-                                max_date = adj_data['일자'].max().date() if not adj_data.empty else date.today()
-                                
-                                start_date = st.date_input(
-                                    "시작일",
-                                    value=min_date,
-                                    min_value=date(1900, 1, 1),
-                                    max_value=date(2100, 12, 31)
-                                )
-                            
-                            with col2:
-                                end_date = st.date_input(
-                                    "종료일",
-                                    value=max_date,
-                                    min_value=date(1900, 1, 1),
-                                    max_value=date(2100, 12, 31)
-                                )
+                            start_date = st.date_input(
+                                "시작일",
+                                value=default_start_date,
+                                min_value=date(1900, 1, 1),
+                                max_value=date(2100, 12, 31),
+                                help=f"종료일 연도({end_date.year})의 1월 1일로 자동 설정됩니다."
+                            )
                             
                             # 재고조정 적용 버튼
                             apply_adjustment = st.form_submit_button("⚖️ 재고조정 적용", type="primary")
