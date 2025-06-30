@@ -40,7 +40,7 @@ def is_cloud_environment():
 
 # 캐시된 프로세서 초기화 (배포 최적화)
 @st.cache_resource
-def get_processors(version="v2.0_total_calc"):
+def get_processors(version="v2.1_error_fix"):
     """프로세서 인스턴스들을 캐시하여 메모리 효율성 향상"""
     try:
         return {
@@ -50,6 +50,8 @@ def get_processors(version="v2.0_total_calc"):
         }
     except Exception as e:
         st.error(f"프로세서 초기화 오류: {str(e)}")
+        st.error("앱을 새로고침해주세요.")
+        st.stop()
         return None
 
 # UI 컴포넌트 함수들 (UIComponents 대체)
@@ -451,6 +453,12 @@ def main():
     # 캐시된 프로세서 가져오기
     processors = get_processors()
     
+    # 프로세서 초기화 확인
+    if processors is None:
+        st.error("⚠️ 시스템 초기화 실패. 페이지를 새로고침해주세요.")
+        st.stop()
+        return
+    
     # 세션 상태 초기화
     if 'step' not in st.session_state:
         st.session_state.step = 1
@@ -527,19 +535,33 @@ def main():
         if st.session_state.part_data is not None:
             st.markdown("### 📊 분석 결과")
             
-            # 요약 통계
-            stats = processors['part_processor'].get_summary_stats()
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("총 품목 수", f"{stats['total_items']:,}개")
-                st.metric("재고 없는 품목", f"{stats['zero_stock_items']:,}개")
-            with col2:
-                st.metric("총 재고량", f"{stats['total_stock']:,.0f}")
-                st.metric("평균 단가", f"{stats['avg_unit_price']:,.0f}원")
-            with col3:
-                st.metric("총 재고액", f"{stats['total_stock_value']:,.0f}원")
-                st.metric("재고액 없는 품목", f"{stats['zero_value_items']:,}개")
+            # 요약 통계 (안전한 접근)
+            try:
+                stats = processors['part_processor'].get_summary_stats()
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("총 품목 수", f"{stats.get('total_items', 0):,}개")
+                    st.metric("재고 없는 품목", f"{stats.get('zero_stock_items', 0):,}개")
+                with col2:
+                    st.metric("총 재고량", f"{stats.get('total_stock', 0):,.0f}")
+                    st.metric("평균 단가", f"{stats.get('avg_unit_price', 0):,.0f}원")
+                with col3:
+                    st.metric("총 재고액", f"{stats.get('total_stock_value', 0):,.0f}원")
+                    st.metric("재고액 없는 품목", f"{stats.get('zero_value_items', 0):,}개")
+            except Exception as e:
+                st.error(f"통계 계산 오류: {str(e)}")
+                # 기본값으로 표시
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("총 품목 수", "0개")
+                    st.metric("재고 없는 품목", "0개")
+                with col2:
+                    st.metric("총 재고량", "0")
+                    st.metric("평균 단가", "0원")
+                with col3:
+                    st.metric("총 재고액", "0원")
+                    st.metric("재고액 없는 품목", "0개")
             
             # 데이터 미리보기
             st.markdown("### 📋 데이터 미리보기")
