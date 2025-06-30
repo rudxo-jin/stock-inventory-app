@@ -660,8 +660,11 @@ def main():
                             # 요약 통계
                             total_items = len(processed_data)
                             changed_items = len(processed_data[processed_data['차이'] != 0])
-                            positive_diff = processed_data[processed_data['차이'] > 0]['차이'].sum()
-                            negative_diff = processed_data[processed_data['차이'] < 0]['차이'].sum()
+                            
+                            # 품목 개수 기준으로 계산
+                            increased_items = len(processed_data[processed_data['차이'] > 0])
+                            decreased_items = len(processed_data[processed_data['차이'] < 0])
+                            
                             total_diff_value = processed_data['차액'].sum()
                             
                             col1, col2, col3 = st.columns(3)
@@ -669,8 +672,8 @@ def main():
                                 st.metric("총 품목 수", f"{total_items:,}개")
                                 st.metric("변경된 품목", f"{changed_items:,}개")
                             with col2:
-                                st.metric("증가 수량", f"{positive_diff:,.0f}")
-                                st.metric("감소 수량", f"{negative_diff:,.0f}")
+                                st.metric("증가 품목", f"{increased_items:,}개")
+                                st.metric("감소 품목", f"{decreased_items:,}개")
                             with col3:
                                 st.metric("총 차액", f"{total_diff_value:,.0f}원")
                             
