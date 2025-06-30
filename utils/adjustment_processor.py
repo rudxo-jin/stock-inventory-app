@@ -49,18 +49,21 @@ class AdjustmentProcessor:
     
     def _clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """데이터 정리"""
+        # 복사본 생성하여 경고 방지
+        df = df.copy()
+        
         # 필수 컬럼 결측값 제거
         df = df.dropna(subset=['제작사품번'])
         
         # 일자 변환
-        df['일자'] = pd.to_datetime(df['일자'], errors='coerce')
+        df.loc[:, '일자'] = pd.to_datetime(df['일자'], errors='coerce')
         df = df.dropna(subset=['일자'])
         
         # 수량 변환
-        df['수량'] = pd.to_numeric(df['수량'], errors='coerce').fillna(0)
+        df.loc[:, '수량'] = pd.to_numeric(df['수량'], errors='coerce').fillna(0)
         
         # 조정구분 추출
-        df['조정구분'] = df['수량변경'].astype(str).apply(self._extract_type)
+        df.loc[:, '조정구분'] = df['수량변경'].astype(str).apply(self._extract_type)
         
         # 유효한 데이터만 유지
         df = df[(df['수량'] != 0) & (df['조정구분'] != '')]
@@ -147,7 +150,7 @@ class AdjustmentProcessor:
         # 반올림
         for col in ['실재고', '실재고액', '차이', '차액']:
             if col in result_df.columns:
-                result_df[col] = result_df[col].round(2)
+                result_df.loc[:, col] = result_df[col].round(2)
         
         return True, message, result_df, summary
     

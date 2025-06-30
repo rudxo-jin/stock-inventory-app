@@ -518,8 +518,8 @@ class ReportGenerator:
             result_df.columns = ['일자', '구분', '제작사품번', '부품명', '수량']
         
         # 단가와 금액 계산
-        result_df['단가'] = 0
-        result_df['금액'] = 0
+        result_df.loc[:, '단가'] = 0
+        result_df.loc[:, '금액'] = 0
         
         # inventory_data나 part_data에서 단가 매칭
         if self.inventory_data is not None:
@@ -549,7 +549,7 @@ class ReportGenerator:
         result_df = result_df.sort_values('일자').reset_index(drop=True)
         
         # 일자 포맷 변경
-        result_df['일자'] = pd.to_datetime(result_df['일자']).dt.strftime('%Y-%m-%d')
+        result_df.loc[:, '일자'] = pd.to_datetime(result_df['일자']).dt.strftime('%Y-%m-%d')
         
         return result_df
     

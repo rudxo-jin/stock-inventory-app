@@ -51,8 +51,8 @@ class PartDataProcessor:
         df = df.dropna(subset=['제작사 품번', '부품명'])
         
         # 숫자 컬럼 타입 변환 (pandas 2.x 호환)
-        df['재고'] = pd.to_numeric(df['재고'], errors='coerce').fillna(0)
-        df['재고액'] = pd.to_numeric(df['재고액'], errors='coerce').fillna(0)
+        df.loc[:, '재고'] = pd.to_numeric(df['재고'], errors='coerce').fillna(0)
+        df.loc[:, '재고액'] = pd.to_numeric(df['재고액'], errors='coerce').fillna(0)
         
         # 음수값 처리 (0으로 변환)
         df.loc[:, '재고'] = df['재고'].clip(lower=0)
@@ -125,7 +125,7 @@ class PartDataProcessor:
             # 데이터 타입 변환
             numeric_cols = ['재고', '재고액', '단가', '실재고', '실재고액', '차이', '차액']
             for col in numeric_cols:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
+                df.loc[:, col] = pd.to_numeric(df[col], errors='coerce')
             
             # 계산 수행
             df = self._calculate_inventory_values(df)
@@ -188,8 +188,8 @@ class PartDataProcessor:
                 df.at[idx, '차액'] = 차액_계산
         
         # 정수 타입으로 변환 (원 단위)
-        df['실재고액'] = df['실재고액'].round(0).astype(int)
-        df['차액'] = df['차액'].round(0).astype(int)
+        df.loc[:, '실재고액'] = df['실재고액'].round(0).astype(int)
+        df.loc[:, '차액'] = df['차액'].round(0).astype(int)
         
         return df
     
