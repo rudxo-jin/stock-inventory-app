@@ -159,45 +159,45 @@ class ReportGenerator:
         buffer = BytesIO()
         
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-            # 1. 요약 보고서 시트
+            # 1. 재고조사요약 시트
             summary_df = self._create_summary_sheet()
             summary_df.to_excel(writer, sheet_name='재고조사요약', index=False, header=False)
             
-            # 2. 재고차이리스트 (-) 시트
-            if self.inventory_data is not None:
-                negative_diff_df = self._create_negative_diff_sheet()
-                if not negative_diff_df.empty:
-                    negative_diff_df.to_excel(writer, sheet_name='재고차이리스트(-)', index=False)
-            
-            # 3. 재고차이리스트 (+) 시트
-            if self.inventory_data is not None:
-                positive_diff_df = self._create_positive_diff_sheet()
-                if not positive_diff_df.empty:
-                    positive_diff_df.to_excel(writer, sheet_name='재고차이리스트(+)', index=False)
-            
-            # 4. 재고조정리스트 (+) 시트
-            if self.adjustment_data is not None:
-                positive_adj_df = self._create_positive_adjustment_sheet()
-                if not positive_adj_df.empty:
-                    positive_adj_df.to_excel(writer, sheet_name='재고조정리스트(+)', index=False)
-            
-            # 5. 재고조정리스트 (-) 시트
-            if self.adjustment_data is not None:
-                negative_adj_df = self._create_negative_adjustment_sheet()
-                if not negative_adj_df.empty:
-                    negative_adj_df.to_excel(writer, sheet_name='재고조정리스트(-)', index=False)
-            
-            # 6. PART 원본데이터 시트
+            # 2. PART원본데이터 시트
             if self.part_data is not None:
                 part_df = self._create_part_data_sheet()
                 if not part_df.empty:
                     part_df.to_excel(writer, sheet_name='PART원본데이터', index=False)
             
-            # 7. 전체재고리스트 시트
+            # 3. 전체재고리스트 시트
             if self.inventory_data is not None:
                 full_inventory_df = self._create_full_inventory_list_sheet()
                 if not full_inventory_df.empty:
                     full_inventory_df.to_excel(writer, sheet_name='전체재고리스트', index=False)
+            
+            # 4. 재고차이리스트(-) 시트
+            if self.inventory_data is not None:
+                negative_diff_df = self._create_negative_diff_sheet()
+                if not negative_diff_df.empty:
+                    negative_diff_df.to_excel(writer, sheet_name='재고차이리스트(-)', index=False)
+            
+            # 5. 재고차이리스트(+) 시트
+            if self.inventory_data is not None:
+                positive_diff_df = self._create_positive_diff_sheet()
+                if not positive_diff_df.empty:
+                    positive_diff_df.to_excel(writer, sheet_name='재고차이리스트(+)', index=False)
+            
+            # 6. 재고조정리스트(-) 시트
+            if self.adjustment_data is not None:
+                negative_adj_df = self._create_negative_adjustment_sheet()
+                if not negative_adj_df.empty:
+                    negative_adj_df.to_excel(writer, sheet_name='재고조정리스트(-)', index=False)
+            
+            # 7. 재고조정리스트(+) 시트
+            if self.adjustment_data is not None:
+                positive_adj_df = self._create_positive_adjustment_sheet()
+                if not positive_adj_df.empty:
+                    positive_adj_df.to_excel(writer, sheet_name='재고조정리스트(+)', index=False)
             
             # 워크시트 스타일링
             workbook = writer.book
