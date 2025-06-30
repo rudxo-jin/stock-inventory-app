@@ -187,6 +187,18 @@ class ReportGenerator:
                 if not negative_adj_df.empty:
                     negative_adj_df.to_excel(writer, sheet_name='재고조정리스트(-)', index=False)
             
+            # 6. PART 원본데이터 시트
+            if self.part_data is not None:
+                part_df = self._create_part_data_sheet()
+                if not part_df.empty:
+                    part_df.to_excel(writer, sheet_name='PART원본데이터', index=False)
+            
+            # 7. 전체재고리스트 시트
+            if self.inventory_data is not None:
+                full_inventory_df = self._create_full_inventory_list_sheet()
+                if not full_inventory_df.empty:
+                    full_inventory_df.to_excel(writer, sheet_name='전체재고리스트', index=False)
+            
             # 워크시트 스타일링
             workbook = writer.book
             worksheet = writer.sheets['재고조사요약']
@@ -563,4 +575,85 @@ class ReportGenerator:
             'inventory_comparison': self.report_data['inventory_comparison'],
             'adjustment_impact': self.report_data['adjustment_impact'],
             'total_impact': self.report_data['total_impact']
-        } 
+        }
+    
+    def _create_part_data_sheet(self) -> pd.DataFrame:
+        """PART 원본데이터 시트 생성"""
+        if self.part_data is None:
+            return pd.DataFrame()
+        
+        # PART 원본 데이터 복사
+        result_df = self.part_data.copy()
+        
+        # 컬럼명 한글로 변경
+        column_mapping = {
+            '제작사 품번': '제작사품번',
+            '부품명': '부품명',
+            '재고': '재고',
+            '재고액': '재고액',
+            '단가': '단가'
+        }
+        
+        # 필요한 컬럼만 선택하고 컬럼명 변경
+        if set(column_mapping.keys()).issubset(result_df.columns):
+            result_df = result_df[list(column_mapping.keys())].copy()
+            result_df.columns = list(column_mapping.values())
+        
+        # 재고액 기준 내림차순 정렬
+        result_df = result_df.sort_values('재고액', ascending=False).reset_index(drop=True)
+        
+        # 합계 행 추가
+        if not result_df.empty:
+            total_row = pd.DataFrame({
+                '제작사품번': ['합계'],
+                '부품명': [''],
+                '재고': [result_df['재고'].sum()],
+                '재고액': [result_df['재고액'].sum()],
+                '단가': ['']
+            })
+            result_df = pd.concat([result_df, total_row], ignore_index=True)
+        
+        return result_df
+    
+    def _create_full_inventory_list_sheet(self) -> pd.DataFrame:
+        """전체재고리스트 시트 생성 (재고조사 후 계산값 적용)"""
+        if self.inventory_data is None:
+            return pd.DataFrame()
+        
+        # 실재고 데이터 복사
+        result_df = self.inventory_data.copy()
+        
+        # 필요한 컬럼만 선택하고 컬럼명 정리
+        if '제작사 품번' in result_df.columns:
+            result_df = result_df[[
+                '제작사 품번', '부품명', '단가', '재고', '재고액',
+                '실재고', '실재고액', '차이', '차액'
+            ]].copy()
+            
+            # 컬럼명 정리
+            result_df.columns = [
+                '제작사품번', '부품명', '단가', '재고', '재고액',
+                '실재고', '실재고액', '차이', '차액'
+            ]
+        
+        # 차액 절댓값 기준 내림차순 정렬 (차이가 큰 순서대로)
+        result_df['차액_절댓값'] = result_df['차액'].abs()
+        result_df = result_df.sort_values('차액_절댓값', ascending=False).reset_index(drop=True)
+        result_df = result_df.drop('차액_절댓값', axis=1)  # 정렬용 컬럼 제거
+        
+        # 합계 행 추가
+        if not result_df.empty:
+            total_row = pd.DataFrame({
+                '제작사품번': ['합계'],
+                '부품명': [''],
+                '단가': [''],
+                '재고': [result_df['재고'].sum()],
+                '재고액': [result_df['재고액'].sum()],
+                '실재고': [result_df['실재고'].sum()],
+                '실재고액': [result_df['실재고액'].sum()],
+                '차이': [result_df['차이'].sum()],
+                '차액': [result_df['차액'].sum()]
+            })
+            result_df = pd.concat([result_df, total_row], ignore_index=True)
+        
+        return result_df 
