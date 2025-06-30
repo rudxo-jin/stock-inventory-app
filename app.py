@@ -40,7 +40,7 @@ def is_cloud_environment():
 
 # 캐시된 프로세서 초기화 (배포 최적화)
 @st.cache_resource
-def get_processors():
+def get_processors(version="v2.0_total_calc"):
     """프로세서 인스턴스들을 캐시하여 메모리 효율성 향상"""
     try:
         return {
