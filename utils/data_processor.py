@@ -136,7 +136,7 @@ class PartDataProcessor:
             return False, f"데이터 처리 오류: {str(e)}", df
     
     def _calculate_inventory_values(self, df: pd.DataFrame) -> pd.DataFrame:
-        """실재고 관련 값들 자동 계산"""
+        """실재고 관련 값들 자동 계산 (총액 기준 처리 방식)"""
         df = df.copy()
         
         for idx, row in df.iterrows():
@@ -149,8 +149,11 @@ class PartDataProcessor:
             # 차이값이 입력된 경우 (우선순위)
             if pd.notna(차이) and 차이 != '':
                 실재고_계산 = 재고 + 차이
-                실재고액_계산 = 실재고_계산 * 단가
-                차액_계산 = 실재고액_계산 - 재고액
+                
+                # 총액 기준 처리 방식
+                실재고액_계산, 차액_계산 = self._calculate_stock_value_by_total(
+                    재고, 재고액, 단가, 실재고_계산
+                )
                 
                 df.at[idx, '실재고'] = 실재고_계산
                 df.at[idx, '실재고액'] = 실재고액_계산
@@ -158,9 +161,12 @@ class PartDataProcessor:
                 
             # 실재고가 입력된 경우
             elif pd.notna(실재고) and 실재고 != '':
-                실재고액_계산 = 실재고 * 단가
                 차이_계산 = 실재고 - 재고
-                차액_계산 = 실재고액_계산 - 재고액
+                
+                # 총액 기준 처리 방식
+                실재고액_계산, 차액_계산 = self._calculate_stock_value_by_total(
+                    재고, 재고액, 단가, 실재고
+                )
                 
                 df.at[idx, '실재고액'] = 실재고액_계산
                 df.at[idx, '차이'] = 차이_계산
@@ -173,9 +179,35 @@ class PartDataProcessor:
                 df.at[idx, '차이'] = 0
                 df.at[idx, '차액'] = 0
         
-        # 숫자 컬럼 반올림
-        numeric_cols = ['실재고액', '차이', '차액']
-        for col in numeric_cols:
-            df[col] = df[col].round(2)
+        # 정수 타입으로 변환 (원 단위)
+        df['실재고액'] = df['실재고액'].round(0).astype(int)
+        df['차액'] = df['차액'].round(0).astype(int)
         
-        return df 
+        return df
+    
+    def _calculate_stock_value_by_total(self, 전산재고, 전산재고액, 단가, 실재고):
+        """총액 기준 처리 방식으로 실재고액 계산"""
+        
+        # 변동 수량 계산
+        변동수량 = 실재고 - 전산재고
+        
+        if 변동수량 == 0:
+            # 변동이 없는 경우
+            실재고액 = 전산재고액
+            차액 = 0
+            
+        elif 변동수량 < 0:
+            # 감소의 경우: 감소분 재고액을 차감
+            감소수량 = abs(변동수량)
+            감소분재고액 = round(감소수량 * 단가, 0)  # 원 단위 반올림
+            실재고액 = 전산재고액 - 감소분재고액
+            차액 = -감소분재고액
+            
+        else:
+            # 증가의 경우: 증가분 재고액을 추가
+            증가수량 = 변동수량
+            증가분재고액 = round(증가수량 * 단가, 0)  # 원 단위 반올림
+            실재고액 = 전산재고액 + 증가분재고액
+            차액 = 증가분재고액
+        
+        return int(실재고액), int(차액) 
