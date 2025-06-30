@@ -122,19 +122,19 @@ class AdjustmentProcessor:
                 adjustment_amount = quantity * unit_price
                 
                 if adj_type == '+':
-                    result_df.loc[mask, '실재고'] += quantity
-                    result_df.loc[mask, '실재고액'] += adjustment_amount
+                    result_df.loc[mask, '실재고'] = result_df.loc[mask, '실재고'].astype(float) + float(quantity)
+                    result_df.loc[mask, '실재고액'] = result_df.loc[mask, '실재고액'].astype(float) + float(adjustment_amount)
                     summary['positive_adjustments'] += 1
                     summary['positive_amount'] += adjustment_amount
                 elif adj_type == '-':
-                    result_df.loc[mask, '실재고'] -= quantity
-                    result_df.loc[mask, '실재고액'] -= adjustment_amount
+                    result_df.loc[mask, '실재고'] = result_df.loc[mask, '실재고'].astype(float) - float(quantity)
+                    result_df.loc[mask, '실재고액'] = result_df.loc[mask, '실재고액'].astype(float) - float(adjustment_amount)
                     summary['negative_adjustments'] += 1
                     summary['negative_amount'] -= adjustment_amount  # 음수로 저장
                 
                 # 차이와 차액 재계산
-                result_df.loc[mask, '차이'] = result_df.loc[mask, '실재고'] - result_df.loc[mask, '재고']
-                result_df.loc[mask, '차액'] = result_df.loc[mask, '실재고액'] - result_df.loc[mask, '재고액']
+                result_df.loc[mask, '차이'] = result_df.loc[mask, '실재고'].astype(float) - result_df.loc[mask, '재고'].astype(float)
+                result_df.loc[mask, '차액'] = result_df.loc[mask, '실재고액'].astype(float) - result_df.loc[mask, '재고액'].astype(float)
                 
                 summary['total_adjustments'] += 1
                 matched_count += 1

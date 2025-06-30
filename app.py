@@ -955,7 +955,7 @@ def main():
                                 st.session_state.excel_generation_time = None
                     
                     with col2:
-                        st.info("📋 **보고서 구성**: 요약보고서, 재고차이리스트, 재고조정리스트 (5개 시트)")
+                        st.info("📋 **보고서 구성**: 요약보고서, 재고차이리스트, 재고조정리스트, PART원본데이터, 전체재고리스트 (7개 시트)")
                         
                         # 현재 상태 표시
                         if st.session_state.excel_report_data is not None:
@@ -972,6 +972,8 @@ def main():
                             - 📈 재고차이리스트(+): 과잉 재고 상세
                             - ⚖️ 재고조정리스트(+): 증가 조정 내역
                             - ⚖️ 재고조정리스트(-): 감소 조정 내역
+                            - 📋 PART원본데이터: 원본 PART 파일 전체 데이터
+                            - 📊 전체재고리스트: 재고조사 후 계산값 적용된 전체 재고
                             """)
                 else:
                     st.error("❌ 보고서 데이터 생성 실패")

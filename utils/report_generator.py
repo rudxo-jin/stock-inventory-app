@@ -529,20 +529,22 @@ class ReportGenerator:
             result_df = result_df[['일자', '수량변경', '제작사품번', '부품명', '수량']].copy()
             result_df.columns = ['일자', '구분', '제작사품번', '부품명', '수량']
         
-        # 단가와 금액 계산
-        result_df.loc[:, '단가'] = 0
-        result_df.loc[:, '금액'] = 0
+        # 단가와 금액 계산 - dtype 명시적 설정
+        result_df.loc[:, '단가'] = 0.0
+        result_df.loc[:, '금액'] = 0.0
+        result_df['단가'] = result_df['단가'].astype(float)
+        result_df['금액'] = result_df['금액'].astype(float)
         
         # inventory_data나 part_data에서 단가 매칭
         if self.inventory_data is not None:
             for idx, row in result_df.iterrows():
                 part_code = row['제작사품번']
-                quantity = row['수량']
+                quantity = float(row['수량'])
                 
                 # inventory_data에서 단가 찾기
                 matching_rows = self.inventory_data[self.inventory_data['제작사 품번'] == part_code]
                 if not matching_rows.empty:
-                    unit_price = matching_rows.iloc[0]['단가']
+                    unit_price = float(matching_rows.iloc[0]['단가'])
                     result_df.loc[idx, '단가'] = unit_price
                     result_df.loc[idx, '금액'] = quantity * unit_price
                 elif self.part_data is not None:
@@ -550,8 +552,8 @@ class ReportGenerator:
                     matching_parts = self.part_data[self.part_data['제작사 품번'] == part_code]
                     if not matching_parts.empty:
                         # 재고액/재고로 단가 계산
-                        stock = matching_parts.iloc[0]['재고']
-                        stock_value = matching_parts.iloc[0]['재고액']
+                        stock = float(matching_parts.iloc[0]['재고'])
+                        stock_value = float(matching_parts.iloc[0]['재고액'])
                         if stock > 0:
                             unit_price = stock_value / stock
                             result_df.loc[idx, '단가'] = unit_price
