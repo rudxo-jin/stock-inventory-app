@@ -106,11 +106,19 @@ class ReportGenerator:
         # 2. 빈 값이나 'nan' 문자열 처리
         result_df[part_code_column] = result_df[part_code_column].replace(['nan', 'NaN', 'None'], '')
         
-        # 3. 정렬: 빈 값은 맨 뒤로, 나머지는 문자열 기준 오름차순
-        result_df['_sort_key'] = result_df[part_code_column].apply(
-            lambda x: (0, x) if x and x.strip() else (1, x)  # 빈 값은 뒤로
-        )
+        # 3. 문자열 정규화 (공백 제거, 대소문자 통일)
+        result_df[part_code_column] = result_df[part_code_column].str.strip().str.upper()
         
+        # 4. 정렬 키 생성: 빈 값은 맨 뒤로, 나머지는 문자열 기준 오름차순
+        def create_sort_key(x):
+            if not x or x.strip() == '':
+                return (1, '')  # 빈 값은 맨 뒤
+            else:
+                return (0, x)   # 일반 값은 앞
+        
+        result_df['_sort_key'] = result_df[part_code_column].apply(create_sort_key)
+        
+        # 5. 강제로 제작사품번 기준 정렬 (기존 정렬 상태 완전 무시)
         result_df = result_df.sort_values('_sort_key').drop('_sort_key', axis=1).reset_index(drop=True)
         
         return result_df
@@ -678,8 +686,12 @@ class ReportGenerator:
                 '실재고', '실재고액', '차이', '차액'
             ]
         
-        # ✅ 공통 정렬 함수 사용 (숫자/문자/혼합 대응) - 전체재고리스트
+        # ✅ 강제로 제작사품번 기준 정렬 (기존 정렬 상태 완전 무시)
         result_df = self._sort_by_part_code(result_df, '제작사품번')
+        
+        # 디버깅: 정렬 결과 확인 (개발용)
+        if not result_df.empty:
+            print(f"전체재고리스트 정렬 후 제작사품번 순서 (상위 10개): {result_df['제작사품번'].head(10).tolist()}")
         
         # 합계 행 추가
         if not result_df.empty:
