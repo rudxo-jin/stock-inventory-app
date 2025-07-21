@@ -89,8 +89,31 @@ class ReportGenerator:
     def set_adjustment_data(self, adjustment_data: pd.DataFrame):
         """재고조정 데이터 설정 (다중 시트용)"""
         self.adjustment_data = adjustment_data
+    
+    def _sort_by_part_code(self, df: pd.DataFrame, part_code_column: str = '제작사품번') -> pd.DataFrame:
+        """
+        제작사품번 기준 오름차순 정렬 (공통 함수)
+        ✅ 숫자/문자/혼합 형태의 제작사품번을 올바르게 정렬
+        """
+        if df.empty or part_code_column not in df.columns:
+            return df
         
-        # 웹 배포용: 디버그 정보 제거
+        result_df = df.copy()
+        
+        # 1. 제작사품번을 문자열로 통일하고 결측치 처리
+        result_df[part_code_column] = result_df[part_code_column].fillna('').astype(str)
+        
+        # 2. 빈 값이나 'nan' 문자열 처리
+        result_df[part_code_column] = result_df[part_code_column].replace(['nan', 'NaN', 'None'], '')
+        
+        # 3. 정렬: 빈 값은 맨 뒤로, 나머지는 문자열 기준 오름차순
+        result_df['_sort_key'] = result_df[part_code_column].apply(
+            lambda x: (0, x) if x and x.strip() else (1, x)  # 빈 값은 뒤로
+        )
+        
+        result_df = result_df.sort_values('_sort_key').drop('_sort_key', axis=1).reset_index(drop=True)
+        
+        return result_df
     
     def _calculate_inventory_comparison(self, part_data: pd.DataFrame, inventory_data: pd.DataFrame) -> Dict:
         """전산재고 vs 실재고 비교 계산"""
@@ -391,8 +414,8 @@ class ReportGenerator:
             '실재고', '실재고액', '차액', '차이'
         ]
         
-        # 제작사품번 기준 오름차순 정렬
-        result_df = result_df.sort_values('제작사품번').reset_index(drop=True)
+        # ✅ 공통 정렬 함수 사용 (숫자/문자/혼합 대응) - 재고차이리스트(-)
+        result_df = self._sort_by_part_code(result_df, '제작사품번')
         
         # 합계 행 추가
         if not result_df.empty:
@@ -434,8 +457,8 @@ class ReportGenerator:
             '실재고', '실재고액', '차액', '차이'
         ]
         
-        # 제작사품번 기준 오름차순 정렬
-        result_df = result_df.sort_values('제작사품번').reset_index(drop=True)
+        # ✅ 공통 정렬 함수 사용 (숫자/문자/혼합 대응) - 재고차이리스트(+)
+        result_df = self._sort_by_part_code(result_df, '제작사품번')
         
         # 합계 행 추가
         if not result_df.empty:
@@ -571,8 +594,8 @@ class ReportGenerator:
                             result_df.at[idx, '단가'] = unit_price
                             result_df.at[idx, '금액'] = quantity * unit_price
         
-        # 제작사품번 기준 오름차순 정렬
-        result_df = result_df.sort_values('제작사품번').reset_index(drop=True)
+        # ✅ 공통 정렬 함수 사용 (숫자/문자/혼합 대응) - 재고조정리스트
+        result_df = self._sort_by_part_code(result_df, '제작사품번')
         
         # 일자 포맷 변경
         result_df['일자'] = pd.to_datetime(result_df['일자']).dt.strftime('%Y-%m-%d')
@@ -613,8 +636,8 @@ class ReportGenerator:
             result_df = result_df[list(column_mapping.keys())].copy()
             result_df.columns = list(column_mapping.values())
         
-        # 제작사품번 기준 오름차순 정렬
-        result_df = result_df.sort_values('제작사품번').reset_index(drop=True)
+        # ✅ 공통 정렬 함수 사용 (숫자/문자/혼합 대응) - PART원본데이터
+        result_df = self._sort_by_part_code(result_df, '제작사품번')
         
         # 합계 행 추가
         if not result_df.empty:
@@ -655,8 +678,8 @@ class ReportGenerator:
                 '실재고', '실재고액', '차이', '차액'
             ]
         
-        # 제작사품번 기준 오름차순 정렬
-        result_df = result_df.sort_values('제작사품번').reset_index(drop=True)
+        # ✅ 공통 정렬 함수 사용 (숫자/문자/혼합 대응) - 전체재고리스트
+        result_df = self._sort_by_part_code(result_df, '제작사품번')
         
         # 합계 행 추가
         if not result_df.empty:
