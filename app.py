@@ -879,9 +879,6 @@ def main():
             
             # 세션에 저장된 점포 정보 사용 (폼 제출과 무관하게 유지)
             if hasattr(st.session_state, 'store_info') and st.session_state.store_info:
-                # final_data가 없으면 inventory_data 사용
-                report_data_source = st.session_state.final_data if st.session_state.final_data is not None else st.session_state.inventory_data
-                
                 # 재고조정 데이터 설정
                 filtered_adj_data = getattr(processors['adjustment_processor'], 'filtered_data', None)
                 if filtered_adj_data is not None:
@@ -889,12 +886,14 @@ def main():
                 elif st.session_state.adjustment_data is not None:
                     processors['report_generator'].set_adjustment_data(st.session_state.adjustment_data)
                 
-                # 보고서 데이터 생성 (세션에 저장된 점포 정보 사용)
+                # 보고서 데이터 생성 (항상 원본 inventory_data 사용)
+                # ✅ 수정: inventory_data는 항상 원본 실재고 조사 결과만 전달
+                # ✅ final_data는 계산용으로만 사용하여 재고조정 중복 반영 방지
                 report_data = processors['report_generator'].generate_report_data(
-                    inventory_data=report_data_source,
+                    inventory_data=st.session_state.inventory_data,  # 항상 원본 실재고 데이터
                     store_info=st.session_state.store_info,
                     part_data=st.session_state.part_data,
-                    final_data=st.session_state.final_data,
+                    final_data=st.session_state.final_data,  # 계산용으로만 사용
                     adjustment_summary=st.session_state.adjustment_summary
                 )
                 

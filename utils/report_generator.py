@@ -28,14 +28,19 @@ class ReportGenerator:
         보고서 데이터 생성
         
         Args:
-            inventory_data: 실재고 처리 데이터 (필수)
+            inventory_data: ✅ 원본 실재고 조사 데이터 (재고조정 미적용, 필수)
             store_info: 점포 정보 (필수)
             part_data: 원본 PART 데이터 (선택)
-            final_data: 최종 재고 데이터 (재고조정 적용 후, 선택)
+            final_data: ✅ 재고조정 적용 후 최종 데이터 (계산용으로만 사용, 선택)
             adjustment_summary: 재고조정 요약 (선택)
             
         Returns:
             보고서 데이터 딕셔너리
+            
+        ✅ 중요한 구조:
+        - inventory_data: 전체재고리스트, 재고차이리스트에 사용 (순수 실재고 조사 결과)
+        - final_data: 요약 계산에만 사용 (재고조정 영향 계산용)
+        - adjustment_data: 재고조정리스트에만 사용 (별도 조정 내역)
         """
         
         # final_data가 없으면 inventory_data 사용
@@ -159,41 +164,41 @@ class ReportGenerator:
         buffer = BytesIO()
         
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-            # 1. 재고조사요약 시트
+            # 1. 재고조사요약 시트 - 전체 통계 및 계산 결과
             summary_df = self._create_summary_sheet()
             summary_df.to_excel(writer, sheet_name='재고조사요약', index=False, header=False)
             
-            # 2. PART원본데이터 시트
+            # 2. PART원본데이터 시트 - 전산재고 원본 데이터
             if self.part_data is not None:
                 part_df = self._create_part_data_sheet()
                 if not part_df.empty:
                     part_df.to_excel(writer, sheet_name='PART원본데이터', index=False)
             
-            # 3. 전체재고리스트 시트
+            # 3. ✅ 전체재고리스트 시트 - 순수 실재고 조사 결과 (재고조정 미적용)
             if self.inventory_data is not None:
                 full_inventory_df = self._create_full_inventory_list_sheet()
                 if not full_inventory_df.empty:
                     full_inventory_df.to_excel(writer, sheet_name='전체재고리스트', index=False)
             
-            # 4. 재고차이리스트(-) 시트
+            # 4. ✅ 재고차이리스트(-) 시트 - 실재고 부족 항목 (원본 조사 결과)
             if self.inventory_data is not None:
                 negative_diff_df = self._create_negative_diff_sheet()
                 if not negative_diff_df.empty:
                     negative_diff_df.to_excel(writer, sheet_name='재고차이리스트(-)', index=False)
             
-            # 5. 재고차이리스트(+) 시트
+            # 5. ✅ 재고차이리스트(+) 시트 - 실재고 초과 항목 (원본 조사 결과)
             if self.inventory_data is not None:
                 positive_diff_df = self._create_positive_diff_sheet()
                 if not positive_diff_df.empty:
                     positive_diff_df.to_excel(writer, sheet_name='재고차이리스트(+)', index=False)
             
-            # 6. 재고조정리스트(-) 시트
+            # 6. ✅ 재고조정리스트(-) 시트 - 별도 재고 감소 조정 내역 (독립적 관리)
             if self.adjustment_data is not None:
                 negative_adj_df = self._create_negative_adjustment_sheet()
                 if not negative_adj_df.empty:
                     negative_adj_df.to_excel(writer, sheet_name='재고조정리스트(-)', index=False)
             
-            # 7. 재고조정리스트(+) 시트
+            # 7. ✅ 재고조정리스트(+) 시트 - 별도 재고 증가 조정 내역 (독립적 관리)
             if self.adjustment_data is not None:
                 positive_adj_df = self._create_positive_adjustment_sheet()
                 if not positive_adj_df.empty:
@@ -386,8 +391,8 @@ class ReportGenerator:
             '실재고', '실재고액', '차액', '차이'
         ]
         
-        # 차액 기준 오름차순 정렬 (가장 큰 손실부터)
-        result_df = result_df.sort_values('차액').reset_index(drop=True)
+        # 제작사품번 기준 오름차순 정렬
+        result_df = result_df.sort_values('제작사품번').reset_index(drop=True)
         
         # 합계 행 추가
         if not result_df.empty:
@@ -429,8 +434,8 @@ class ReportGenerator:
             '실재고', '실재고액', '차액', '차이'
         ]
         
-        # 차액 기준 내림차순 정렬 (가장 큰 이익부터)
-        result_df = result_df.sort_values('차액', ascending=False).reset_index(drop=True)
+        # 제작사품번 기준 오름차순 정렬
+        result_df = result_df.sort_values('제작사품번').reset_index(drop=True)
         
         # 합계 행 추가
         if not result_df.empty:
@@ -450,7 +455,11 @@ class ReportGenerator:
         return result_df
     
     def _create_positive_adjustment_sheet(self) -> pd.DataFrame:
-        """재고조정리스트 (+) 시트 생성"""
+        """
+        재고조정리스트 (+) 시트 생성
+        ✅ 역할: 재고 증가 조정 내역만 별도 관리
+        - 전체재고리스트와 완전히 분리된 독립적인 조정 내역
+        """
         if self.adjustment_data is None:
             return pd.DataFrame()
         
@@ -484,7 +493,11 @@ class ReportGenerator:
         return result_df
     
     def _create_negative_adjustment_sheet(self) -> pd.DataFrame:
-        """재고조정리스트 (-) 시트 생성"""
+        """
+        재고조정리스트 (-) 시트 생성
+        ✅ 역할: 재고 감소 조정 내역만 별도 관리
+        - 전체재고리스트와 완전히 분리된 독립적인 조정 내역
+        """
         if self.adjustment_data is None:
             return pd.DataFrame()
         
@@ -558,8 +571,8 @@ class ReportGenerator:
                             result_df.at[idx, '단가'] = unit_price
                             result_df.at[idx, '금액'] = quantity * unit_price
         
-        # 일자 기준 정렬
-        result_df = result_df.sort_values('일자').reset_index(drop=True)
+        # 제작사품번 기준 오름차순 정렬
+        result_df = result_df.sort_values('제작사품번').reset_index(drop=True)
         
         # 일자 포맷 변경
         result_df['일자'] = pd.to_datetime(result_df['일자']).dt.strftime('%Y-%m-%d')
@@ -600,8 +613,8 @@ class ReportGenerator:
             result_df = result_df[list(column_mapping.keys())].copy()
             result_df.columns = list(column_mapping.values())
         
-        # 재고액 기준 내림차순 정렬
-        result_df = result_df.sort_values('재고액', ascending=False).reset_index(drop=True)
+        # 제작사품번 기준 오름차순 정렬
+        result_df = result_df.sort_values('제작사품번').reset_index(drop=True)
         
         # 합계 행 추가
         if not result_df.empty:
@@ -617,11 +630,16 @@ class ReportGenerator:
         return result_df
     
     def _create_full_inventory_list_sheet(self) -> pd.DataFrame:
-        """전체재고리스트 시트 생성 (재고조사 후 계산값 적용)"""
+        """
+        전체재고리스트 시트 생성 
+        ✅ 중요: 순수 실재고 조사 결과만 표시 (재고조정 적용 전 상태)
+        - 재고조정 내역은 별도 '재고조정리스트(+/-)' 시트에서 관리
+        - 중복 반영 방지를 위해 항상 원본 inventory_data 사용
+        """
         if self.inventory_data is None:
             return pd.DataFrame()
         
-        # 실재고 데이터 복사
+        # ✅ 원본 실재고 조사 데이터 복사 (재고조정 미적용 상태)
         result_df = self.inventory_data.copy()
         
         # 필요한 컬럼만 선택하고 컬럼명 정리
@@ -637,10 +655,8 @@ class ReportGenerator:
                 '실재고', '실재고액', '차이', '차액'
             ]
         
-        # 차액 절댓값 기준 내림차순 정렬 (차이가 큰 순서대로)
-        result_df['차액_절댓값'] = result_df['차액'].abs()
-        result_df = result_df.sort_values('차액_절댓값', ascending=False).reset_index(drop=True)
-        result_df = result_df.drop('차액_절댓값', axis=1)  # 정렬용 컬럼 제거
+        # 제작사품번 기준 오름차순 정렬
+        result_df = result_df.sort_values('제작사품번').reset_index(drop=True)
         
         # 합계 행 추가
         if not result_df.empty:
